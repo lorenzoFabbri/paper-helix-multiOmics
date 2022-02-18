@@ -1,0 +1,317 @@
+---
+title: "Regularized Regression"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+editor_options:
+  chunk_output_type: inline
+---
+
+Since the number of predictor variables is relatively small, the idea here is to 
+use a Regularized Regression model (e.g., LASSO) to predict the -omic variables 
+from the exposures, eventually adjusting for selected confounders, and to 
+use a method to control for multiple testing.
+
+```{r "setup", include=FALSE, echo=FALSE}
+rm(list = ls())
+
+library(knitr)
+library(seagull)
+library(readr)
+library(purrr)
+library(viridis)
+library(coefplot)
+library(magrittr)
+
+knitr::opts_knit$set(root.dir = '~/Documents/university/PhD/papers/paper1_helix_multiOmics/paper-helix-multiOmics')
+```
+
+```{r}
+source("code/multivariate_analysis/model.R", local = knitr::knit_global())
+source("code/multivariate_analysis/preprocess.R", local = knitr::knit_global())
+source("code/multivariate_analysis/plot.R", local = knitr::knit_global())
+load("code/env")
+
+set.seed(0)
+```
+
+# Data Pre-Processing
+```{r}
+# Prepare datasets for pre-processing
+time.point <- 1
+omic.type  <- "proteome"
+
+time.point   <- ifelse(time.point == 1, "", "2")
+exposome     <- get(paste0("exp_", omic.type, time.point))
+omic         <- get(paste0("omic_", omic.type, time.point))
+metadata     <- get(paste0("metadata", time.point))
+metadata_all <- readr::read_csv("./data/metadata_all.csv", col_names = TRUE)
+metadata     <- metadata_all %>%
+  filter(period == ifelse(time.point == 1, "A", "B")) %>%
+  inner_join(metadata, by = "HelixID")
+
+dat <- list(
+  exposures = exposome, 
+  omics     = omic, 
+  metadata  = metadata
+)
+```
+
+```{r}
+dat.preprocessed <- preprocess.data(data = dat, 
+                                    scale.new = list(perform = TRUE, 
+                                                     group = "cohort", 
+                                                     method = "range"), 
+                                    is.adjusted = FALSE, validate = FALSE)
+
+do.adjust <- TRUE
+if (do.adjust == TRUE) {
+  covariates.char <- c("cohort.x", "e3_sex.x")
+  covariates.num  <- c("age_sample_years.x", "zBMI")
+  covariates <- list(covariates.char = covariates.char, 
+                     covariates.num = covariates.num)
+  dat.preprocessed$omics <- perform.adj(data = dat.preprocessed$omics, 
+                                        metadata = dat.preprocessed$metadata, 
+                                        covariates = covariates, 
+                                        method = "residual")
+}
+```
+
+# `glmnet`
+```{r}
+library(glmnet)
+
+lasso <- TRUE
+alpha <- ifelse(lasso == TRUE, 1, 0)
+intercept <- TRUE
+```
+
+```{r}
+cv.mfit <- glmnet::cv.glmnet(x = as.matrix(dat.preprocessed$exposures), 
+                             y = as.matrix(dat.preprocessed$omics), 
+                             family = "mgaussian", alpha = alpha, 
+                             standardize = FALSE, standardize.response = FALSE, 
+                             intercept = intercept)
+```
+
+```{r}
+print(cv.mfit$lambda.min)
+plot(cv.mfit)
+```
+
+```{r}
+mfit <- glmnet::glmnet(x = as.matrix(dat.preprocessed$exposures), 
+                       y = as.matrix(dat.preprocessed$omics), 
+                       family = "mgaussian", alpha = alpha, 
+                       standardize = FALSE, standardize.response = FALSE, 
+                       intercept = intercept)
+
+plot(mfit, xvar = "lambda", label = TRUE, type.coef = "coef")
+plot(mfit, xvar = "dev", label = TRUE, type.coef = "coef")
+```
+
+```{r, fig.width = 12, fig.height = 7}
+#s <- cv.mfit$lambda.min
+s <- exp(-5)
+
+predictions <- predict(cv.mfit, newx = as.matrix(dat.preprocessed$exposures), 
+                       #s = "lambda.min")
+                       s = s)
+boxplot(predictions[, , 1])
+```
+
+```{r}
+coefs <- coef(cv.mfit, s = s)
+
+all.coefs <- list()
+for (c in coefs) {
+  m <- as.matrix(c)
+  all.coefs <- append(all.coefs, list(m))
+}
+
+df <- as.data.frame(matrix(unlist(all.coefs), 
+                           nrow = length(all.coefs)))
+colnames(df) <- rownames(as.data.frame(as.matrix(coefs[[1]])))
+print(df)
+
+df <- df %>%
+  dplyr::select(-`(Intercept)`) %>% t() %>%
+  apply(., MARGIN = 1, function(X) {(X - mean(X)) / (sd(X))}) %>%
+  as.data.frame()
+
+#df <- df != 0
+#df %<>% dplyr::transmute_all(.tbl = as.data.frame(.), .funs = as.integer)
+
+df$omic <- colnames(dat.preprocessed$omics)
+```
+
+```{r, fig.width = 12, fig.height = 7}
+df.plot <- df %>%
+  tidyr::gather("exposure", "coefficient", -omic) %>%
+  ggplot2::ggplot(mapping = aes(x = reorder(exposure, -coefficient), y = omic, 
+                                fill = coefficient)) +
+  ggplot2::geom_tile() +
+  ggplot2::theme(axis.text.x = element_text(angle = 90, 
+                                            vjust = 0.5, hjust = 0.5))
+df.plot
+```
+
+# Regression with Seagull package
+```{r}
+ome <- dat.preprocessed$omics[[1]]
+
+# Fit model (omics ~ exposures or omics ~ exposures + confounders)
+mod <- seagull::seagull(y = ome, 
+                        Z = as.matrix(dat.preprocessed$exposures), 
+                        groups = rep(1, dim(dat.preprocessed$exposures)[2]), 
+                        standardize = FALSE)
+```
+
+## Visualization
+```{r}
+# Plot number of non-zero coefficients for each value of lambda tested
+ggplot2::ggplot(mapping = aes(x = mod$lambda, y = rowSums(mod$random_effects != 0))) +
+  ggplot2::geom_point() +
+  ggplot2::xlab("lambda") + ggplot2::ylab("non-zero")
+```
+
+```{r, fig.width = 12, fig.height = 7}
+# Plot results
+which.lambda <- 1
+ggplot2::ggplot(mapping = aes(x = seq(1, dim(dat.preprocessed$exposures)[2], 1), 
+                              y = as.vector(mod$random_effect[which.lambda, ]))) +
+  ggplot2::geom_point(aes(color = I(ifelse(as.vector(mod$random_effect[which.lambda, ]) != 0.0, 
+                                         "red", "black")))) +
+  ggplot2::geom_abline(slope = 0.0, intercept = 0.0) +
+  ggplot2::xlab("index") + ggplot2::ylab("effect estimate") +
+  ggplot2::ggtitle(paste("Value of lambda: ", round(mod$lambda[which.lambda], 3))) +
+  ggplot2::scale_x_continuous(breaks = seq(1, dim(dat.preprocessed$exposures)[2], 1), 
+                              labels = colnames(dat.preprocessed$exposures)) +
+  ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0.5))
+```
+
+```{r, fig.width = 12, fig.height = 7}
+df <- as.data.frame(mod$random_effects)
+df <- df %>%
+  `colnames<-`(colnames(dat.preprocessed$exposures)) %>%
+  as.data.frame() %>% stack()
+
+ggplot2::ggplot(df) +
+  ggplot2::geom_boxplot(mapping = aes(x = ind, y = values)) +
+  ggplot2::xlab("exposure") + ggplot2::ylab("effect estimate") +
+  ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0.5))
+```
+
+## Multi-Outcome
+```{r}
+# Function to fit model for each -omic variable
+fit.seagull <- function(data, ome) {
+  
+  # Fit model (omics ~ exposures or omics ~ exposures + confounders)
+  mod <- seagull::seagull(y = ome, 
+                          Z = as.matrix(data$exposures), 
+                          groups = rep(1, dim(data$exposures)[2]), 
+                          standardize = FALSE)
+  
+  return(mod)
+}
+
+# Function to extract necessary data from each result of Seagull
+extract.seagull <- function(data, mod, iter) {
+  random.effect <- mod$random_effects %>%
+    `colnames<-`(colnames(data$exposures)) %>%
+    t() %>% as.data.frame() %>%
+    dplyr::mutate(frac.zero = apply(., MARGIN = 1, 
+                                    FUN = function(x) { prop.table(table(as.vector(x)))["0"] })) %>%
+    dplyr::select(frac.zero) %>%
+    dplyr::rename(., !!paste0("mod_", iter) := frac.zero)
+  
+  return(random.effect)
+}
+```
+
+```{r}
+# Iterate over all dependent variables (-omics) and fit model
+res <- list()
+for (ome in colnames(dat.preprocessed$omics)) {
+  mod <- fit.seagull(dat.preprocessed, dat.preprocessed$omics[[ome]])
+  
+  res <- append(res, list(mod))
+}
+```
+
+```{r}
+# For each fitted model and for each independent variable (exposures), 
+# extract fraction of times each exposure has a zero coefficient
+fracs.zeros <- list()
+i <- 1
+for (el in res) {
+  tmp <- extract.seagull(data = dat.preprocessed, mod = el, iter = i)
+  fracs.zeros <- append(fracs.zeros, list(tmp))
+  i <- i + 1
+}
+
+# Merge everything together (i.e., each row is an exposure and each column 
+# is the fraction of times it is zero for each value of lambda)
+fracs.zeros <- lapply(fracs.zeros, function(x) { tibble::rownames_to_column(x, var = "exposure") })
+df.fracs.zeros <- fracs.zeros %>%
+  purrr::reduce(dplyr::inner_join, by = "exposure")
+```
+
+```{r, fig.width = 12, fig.height = 7}
+# Plot results from df
+df.fracs.zeros <- df.fracs.zeros %>% tidyr::pivot_longer(-exposure)
+
+ggplot2::ggplot(df.fracs.zeros) +
+  ggplot2::geom_boxplot(mapping = aes(x = reorder(exposure, value, FUN = median), 
+                                      y = value)) +
+  ggplot2::xlab("exposure") + ggplot2::ylab("fracs.zeros") +
+  ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0.5))
+```
+
+```{r, fig.width = 12, fig.height = 7}
+heatmap.seagull <- function(data, mod, iter) {
+  random.effect <- mod$random_effects %>%
+    `colnames<-`(colnames(data$exposures)) %>%
+    t() %>% as.data.frame()
+  
+  return(random.effect)
+}
+
+list.heatmaps <- list()
+i <- 1
+for (el in res) {
+  tmp <- heatmap.seagull(data = dat.preprocessed, mod = el, iter = i)
+  list.heatmaps <- append(list.heatmaps, list(tmp))
+  i <- i + 1
+}
+
+num.lambdas <- dim(list.heatmaps[1][[1]])[2]
+list.plots <- list()
+for (l in 1:num.lambdas) {
+  rows <- list()
+  for (el in list.heatmaps) {
+    row <- el[, l]
+    row <- (row - min(row)) / (max(row) - min(row))
+    rows <- append(rows, list(row))
+  }
+  df <- as.data.frame(matrix(unlist(rows), nrow = length(rows)))
+  
+  colnames(df) <- rownames(el)
+  df$omic <- colnames(dat.preprocessed$omics)
+  
+  # Create heatmap
+  df <- df %>%
+    tidyr::gather("exposure", "coefficient", -omic) %>%
+    ggplot2::ggplot(mapping = aes(x = exposure, y = omic, 
+                                  fill = coefficient)) +
+    ggplot2::geom_tile() +
+    ggplot2::theme(axis.text.x = element_text(angle = 90, 
+                                              vjust = 0.5, hjust = 0.5)) +
+    viridis::scale_fill_viridis(discrete = FALSE)
+  list.plots <- append(list.plots, list(df))
+}
+```
+
+```{r, fig.width = 12, fig.height = 7}
+print(list.plots)
+```
+

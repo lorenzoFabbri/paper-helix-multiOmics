@@ -1,0 +1,628 @@
+---
+title: "Diagnose"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup}
+library(knitr)
+library(tidyverse)
+
+knitr::opts_knit$set(root.dir = '/home/lorenzo/mounts/PROJECTES/HELIX/lorenzoF/paper-helix-multiOmics/')
+knitr::opts_chunk$set(echo = TRUE, rows.print = 300)
+```
+
+# What the fuck is going on with the data
+
+```{r}
+rm(list = ls())
+path.data.preproc <- '../data/raw/'
+
+# Metabolome
+metab.serum <- get(load(paste0(path.data.preproc, "metab_serum_panel_v3.RData")))
+metab.urine <- get(load(paste0(path.data.preproc, "metab_urine_panel_v3.RData")))
+
+# Methylome
+meth.samples <- readr::read_csv("data/samples_methylome.csv") %>%
+  `colnames<-`(c("SampleID")) %>%
+  dplyr::mutate(SampleID = gsub("EDP", "EDE", SampleID))
+meth.clean <- list(
+  feature.data = NULL, 
+  pheno.data = meth.samples %>%
+    dplyr::filter(grepl("_1A", SampleID)), 
+  omics = meth.samples %>%
+    dplyr::filter(grepl("_1A", SampleID))
+)
+meth.clean2 <- list(
+  feature.data = NULL, 
+  pheno.data = meth.samples %>%
+    dplyr::filter(grepl("_1B", SampleID)), 
+  omics = meth.samples %>%
+    dplyr::filter(grepl("_1B", SampleID))
+)
+
+# Proteome
+prot <- get(load(paste0(path.data.preproc, "proteome_panel_v5.Rdata")))
+```
+
+```{r}
+library(haven)
+
+# Exposome
+exposome.complete <- haven::read_dta(paste0(path.data.preproc, 
+                                            "biomarker_children panel_database_20171220.dta"))
+
+# Filtering: by time period (1 or 2 -> 1A or 1B) and by `hcp_sample` (8 = pooled urines)
+exposome <- exposome.complete %>%
+  dplyr::filter(hcp_sample == 8) %>%
+  dplyr::select(c(helix_id, hcp_period_c, dplyr::contains("_cadj"))) %>%
+  tidyr::separate(helix_id, into = c("cohort", "SubjectID"), sep = 3) %>%
+  dplyr::mutate(hcp_period_c = ifelse(hcp_period_c == 1, "1A", "1B")) %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(SubjectID = ifelse(
+    cohort == "SAB", 
+    ifelse(
+      nchar(SubjectID) <= 2, 
+      ifelse(
+        nchar(SubjectID) == 1, 
+        paste0("00", SubjectID), 
+        paste0("0", SubjectID)
+      ), 
+      SubjectID
+    ), 
+    SubjectID
+  )) %>%
+  tidyr::unite("SampleID", c(cohort, SubjectID, hcp_period_c))
+```
+
+```{r}
+library(VIM)
+
+##### Function to extract and tidy data (features, phenotypes and actual data)
+explore.data <- function(dat, params) {
+  
+  if (params$type == "e") {
+    exposome <- dat
+    feature.data <- NULL
+    
+    exposome <- exposome %>%
+      dplyr::filter(grepl(params$filter.time, SampleID)) %>%
+      dplyr::mutate(SampleID = gsub("EDP", "EDE", SampleID))
+    
+    # Log-transform and append to variable name
+    exposome <- exposome %>%
+      dplyr::mutate(dplyr::across(where(is.numeric), log2))
+    
+    colnames(exposome) <- sapply(
+      colnames(exposome), function(x) {
+        if (grepl("hcp_", x)) {
+          paste0(strsplit(x, "_")[[1]][2], "_", params$type) %>%
+            paste0("log.", .)
+        } else {x}
+      }
+    )
+    
+    # Impute missing values
+    SampleID <- exposome$SampleID
+    exposome <- exposome %>%
+      dplyr::select(-c(SampleID)) %>%
+      VIM::kNN(data = ., k = 5, imp_var = FALSE)
+    exposome <- cbind(SampleID, exposome)
+    
+    pheno.data <- exposome$SampleID %>% tibble::as_tibble() %>%
+      `colnames<-`(c("SampleID"))
+    
+    ret <- list(
+      feature.data = feature.data, 
+      pheno.data = pheno.data, 
+      data = exposome
+    ) # End `if` for exposome
+    
+  } else if (params$type %in% c("p", "ms", "mu")) {
+    omics <- Biobase::exprs(dat) %>% t(.) %>% tibble::as_tibble()
+    pheno.data <- Biobase::pData(dat) %>% tibble::as_tibble()
+    feature.data <- Biobase::fData(dat) %>% tibble::as_tibble()
+    
+    omics <- omics %>%
+      dplyr::mutate(SampleID = pheno.data$SampleID) %>%
+      dplyr::mutate(SampleID = gsub("EDP", "EDE", SampleID)) %>%
+      dplyr::filter(grepl(params$filter.time, SampleID)) %>%
+      dplyr::select(SampleID, dplyr::everything())
+    pheno.data <- pheno.data %>%
+      dplyr::filter(Period == params$filter.time %>%
+                      stringr::str_replace(., "\\_", "")) %>%
+      dplyr::mutate(SampleID = gsub("EDP", "EDE", SampleID))
+    
+    colnames(omics) <- sapply(
+      colnames(omics), function(x) {
+        if (grepl("log.", x)) {
+          paste0(strsplit(x, "log.")[[1]][2], "_", params$type)
+        } else if (x != "SampleID") {
+          paste0(x, "_", params$type)
+        } else {x}
+      }
+    )
+    
+    if (dim(omics)[1] != dim(pheno.data)[1]) { stop(call. = TRUE) }
+    
+    ret <- list(
+      feature.data = feature.data, 
+      pheno.data = pheno.data, 
+      data = omics
+    ) # End `if` for omics
+  }
+  
+  # Save dataset in server directory for paper
+  if (params$save == TRUE) {
+    # Save in old server
+    #path.dir <- '/run/user/1000/gvfs/smb-share:server=fs01.isglobal.lan,share=data/ws_helix/HELIX_analyses/HELIX_Panel_Nonpersistent_multi-omics/'
+    #path.dir <- paste0(path.dir, "data/", params$file.name)
+    #saveRDS(object = ret, file = path.dir)
+    
+    # Save in HPC cluster
+    path.dir <- '../data/'
+    path.dir <- paste0(path.dir, params$file.name)
+    saveRDS(object = ret, file = path.dir)
+  }
+  
+  return(ret)
+}
+
+time.point <- "_1A"
+to.save <- TRUE
+
+exposome.clean <- explore.data(exposome, params = list(
+  type = "e", 
+  filter.time = time.point, 
+  save = to.save, 
+  file.name = paste0("exposome", time.point)
+))# %>% diagnose.data(., paste0("exp", time.point))
+
+prot.clean <- explore.data(prot, params = list(
+  type = "p", 
+  filter.time = time.point, 
+  save = to.save, 
+  file.name = paste0("proteome", time.point)
+))# %>% diagnose.data(., paste0("prot", time.point))
+
+mets.clean <- explore.data(metab.serum, params = list(
+  type = "ms", 
+  filter.time = time.point, 
+  save = to.save, 
+  file.name = paste0("metabSerum", time.point)
+))# %>% diagnose.data(., paste0("metS", time.point))
+mets.clean$data <- mets.clean$data %>%
+  dplyr::rename(CreatinineS_ms = Creatinine_ms) %>%
+  dplyr::rename(TaurineS_ms = Taurine_ms)
+mets.clean$feature.data <- mets.clean$feature.data %>%
+  dplyr::mutate(dplyr::across(c("Rvar", "var"), 
+                stringr::str_replace, "Creatinine", "CreatinineS")) %>%
+  dplyr::mutate(dplyr::across(c("Rvar", "var"), 
+                stringr::str_replace, "Taurine", "TaurineS"))
+saveRDS(object = mets.clean, file = paste0('../data/metabSerum', time.point))
+
+metu.clean <- explore.data(metab.urine, params = list(
+  type = "mu", 
+  filter.time = time.point, 
+  save = to.save, 
+  file.name = paste0("metabUrine", time.point)
+))# %>% diagnose.data(., paste0("metU", time.point))
+metu.clean$data <- metu.clean$data %>%
+  dplyr::rename(CreatinineU_mu = Creatinine_mu) %>%
+  dplyr::rename(TaurineU_mu = Taurine_mu)
+metu.clean$feature.data <- metu.clean$feature.data %>%
+  dplyr::mutate(dplyr::across(c("Rvar", "var"), 
+                stringr::str_replace, "Creatinine", "CreatinineU")) %>%
+  dplyr::mutate(dplyr::across(c("Rvar", "var"), 
+                stringr::str_replace, "Taurine", "TaurineU"))
+saveRDS(object = metu.clean, file = paste0('../data/metabUrine', time.point))
+
+#===============================================================================
+  
+time.point <- "_1B"
+
+exposome.clean2 <- explore.data(exposome, params = list(
+  type = "e", 
+  filter.time = time.point, 
+  save = to.save, 
+  file.name = paste0("exposome", time.point)
+))# %>% diagnose.data(., paste0("exp", time.point))
+
+prot.clean2 <- explore.data(prot, params = list(
+  type = "p", 
+  filter.time = time.point, 
+  save = to.save, 
+  file.name = paste0("proteome", time.point)
+))# %>% diagnose.data(., paste0("prot", time.point))
+
+mets.clean2 <- explore.data(metab.serum, params = list(
+  type = "ms", 
+  filter.time = time.point, 
+  save = to.save, 
+  file.name = paste0("metabSerum", time.point)
+))# %>% diagnose.data(., paste0("metS", time.point))
+mets.clean2$data <- mets.clean2$data %>%
+  dplyr::rename(CreatinineS_ms = Creatinine_ms) %>%
+  dplyr::rename(TaurineS_ms = Taurine_ms)
+mets.clean2$feature.data <- mets.clean2$feature.data %>%
+  dplyr::mutate(dplyr::across(c("Rvar", "var"), 
+                stringr::str_replace, "Creatinine", "CreatinineS")) %>%
+  dplyr::mutate(dplyr::across(c("Rvar", "var"), 
+                stringr::str_replace, "Taurine", "TaurineS"))
+saveRDS(object = mets.clean2, file = paste0('../data/metabSerum', time.point))
+
+metu.clean2 <- explore.data(metab.urine, params = list(
+  type = "mu", 
+  filter.time = time.point, 
+  save = to.save, 
+  file.name = paste0("metabUrine", time.point)
+))# %>% diagnose.data(., paste0("metU", time.point))
+metu.clean2$data <- metu.clean2$data %>%
+  dplyr::rename(CreatinineU_mu = Creatinine_mu) %>%
+  dplyr::rename(TaurineU_mu = Taurine_mu)
+metu.clean2$feature.data <- metu.clean2$feature.data %>%
+  dplyr::mutate(dplyr::across(c("Rvar", "var"), 
+                stringr::str_replace, "Creatinine", "CreatinineU")) %>%
+  dplyr::mutate(dplyr::across(c("Rvar", "var"), 
+                stringr::str_replace, "Taurine", "TaurineU"))
+saveRDS(object = metu.clean2, file = paste0('../data/metabUrine', time.point))
+```
+
+```{r}
+# Metadata (i.e., covariates) for both time points
+
+data.all.1 <- list(exposome.clean, prot.clean, 
+                   metu.clean, mets.clean, meth.clean)
+data.all.2 <- list(exposome.clean2, prot.clean2, 
+                   metu.clean2, mets.clean2, meth.clean2)
+
+meta.all.1 <- list()
+for (d in data.all.1) {
+  meta.all.1 <- append(meta.all.1, list(d$pheno.data))
+}
+
+meta.all.2 <- list()
+for (d in data.all.2) {
+  meta.all.2 <- append(meta.all.2, list(d$pheno.data))
+}
+
+meta.1 <- purrr::discard(meta.all.1, is.null) %>% purrr::reduce(dplyr::inner_join, by = "SampleID")
+
+meta.2 <- purrr::discard(meta.all.2, is.null) %>% purrr::reduce(dplyr::inner_join, by = "SampleID")
+
+# These *should be* the common samples across time points and data types
+common.samples.time <- intersect(meta.1$SampleID %>%
+                                   sapply(., function(x) {
+                                     substr(x, 1, nchar(x) - 3) %>% unname() %>% unlist()
+                                     }), 
+                                 meta.2$SampleID %>% sapply(., function(x) {
+                                   substr(x, 1, nchar(x) - 3) %>% unname() %>% unlist()
+                                   }))
+print(length(common.samples.time))
+
+path.meta <- "data/"
+season <- readr::read_csv(paste0(path.meta, "metadata_old.csv"), col_names = TRUE) %>%
+  dplyr::select(c(SampleID, season, period)) %>%
+  dplyr::mutate(SampleID = gsub("EDP", "EDE", SampleID))
+season.t1 <- season %>%
+    dplyr::filter(period == "A") %>% dplyr::select(-c(period))
+season.t2 <- season %>%
+    dplyr::filter(period == "B") %>% dplyr::select(-c(period))
+common.samples.season <- intersect(season.t1$SampleID %>%
+                                     sapply(., function(x) {
+                                       substr(x, 1, nchar(x) - 3) %>% unname() %>% unlist()
+                                       }), 
+                                   season.t2$SampleID %>% sapply(., function(x) {
+                                     substr(x, 1, nchar(x) - 3) %>% unname() %>% unlist()
+                                     }))
+print(length(common.samples.season))
+
+common.samples <- intersect(common.samples.time, common.samples.season)
+print(length(common.samples))
+
+# Save data
+readr::write_csv(meta.1, file = "data/meta1.csv", col_names = TRUE)
+readr::write_csv(meta.2, file = "data/meta2.csv", col_names = TRUE)
+readr::write_csv(common.samples.time %>% tibble::as_tibble() %>%
+                   `colnames<-`(c("SampleID")), 
+                 file = "data/common_samples.csv", col_names = TRUE)
+
+# Common subjects by time point separately
+common.samples.t1 <- intersect(meta.1$SampleID, season.t1$SampleID) %>%
+  tibble::as_tibble() %>% `colnames<-`(c("SampleID")) %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(SampleID = substr(SampleID, 
+                                  1, nchar(SampleID) - 3) %>%
+                  unname() %>% unlist())
+common.samples.t2 <- intersect(meta.2$SampleID, season.t2$SampleID) %>%
+  tibble::as_tibble() %>% `colnames<-`(c("SampleID")) %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(SampleID = substr(SampleID, 
+                                  1, nchar(SampleID) - 3) %>%
+                  unname() %>% unlist())
+readr::write_csv(common.samples.t1, file = "data/common_samples_t1.csv", 
+                 col_names = TRUE)
+readr::write_csv(common.samples.t2, file = "data/common_samples_t2.csv", 
+                 col_names = TRUE)
+```
+
+```{r, fig.width=15, fig.height=6}
+dat <- list(
+  exposures = exposome.clean$data$SampleID, 
+  proteins = prot.clean$data$SampleID, 
+  serum_metabolites = mets.clean$data$SampleID, 
+  urinary_metabolites = metu.clean$data$SampleID, 
+  methylome = meth.clean$pheno.data$SampleID
+)
+venn <- ggVennDiagram::Venn(dat) %>% ggVennDiagram::process_data()
+ggplot2::ggplot() +
+  ggplot2::geom_sf(aes(fill = count), data = venn@region) +
+  ggplot2::geom_sf(aes(color = id), size = 2, data = venn@setEdge, 
+                   show.legend = F) +
+  ggplot2::geom_sf_text(aes(label = name), data = venn@setLabel) +
+  ggplot2::geom_sf_label(aes(label = count), 
+                         family = "serif", size = 5, alpha = 0.5, 
+                         data = venn@region) +
+  ggplot2::theme_void()
+ggplot2::ggsave(filename = "venn_t1.png", path = "results/images/", 
+                height = 12, width = 12)
+
+dat <- list(
+  exposures = exposome.clean2$data$SampleID, 
+  proteins = prot.clean2$data$SampleID, 
+  serum_metabolites = mets.clean2$data$SampleID, 
+  urinary_metabolites = metu.clean2$data$SampleID, 
+  methylome = meth.clean2$pheno.data$SampleID
+)
+venn <- ggVennDiagram::Venn(dat) %>% ggVennDiagram::process_data()
+ggplot2::ggplot() +
+  ggplot2::geom_sf(aes(fill = count), data = venn@region) +
+  ggplot2::geom_sf(aes(color = id), size = 2, data = venn@setEdge, 
+                   show.legend = F) +
+  ggplot2::geom_sf_text(aes(label = name), data = venn@setLabel) +
+  ggplot2::geom_sf_label(aes(label = count), 
+                         family = "serif", size = 5, alpha = 0.5, 
+                         data = venn@region) +
+  ggplot2::theme_void()
+ggplot2::ggsave(filename = "venn_t2.png", path = "results/images/", 
+                height = 12, width = 12)
+```
+
+```{r, fig.width=15, fig.height=6}
+plot.missings <- function(df) {
+  row.plot <- get(df)$data %>%
+    dplyr::select(-c(SampleID)) %>%
+    dplyr::mutate(id = row_number()) %>%
+    tidyr::pivot_longer(., cols = -id, 
+                        names_to = "key", values_to = "val") %>%
+    dplyr::mutate(isna = is.na(val)) %>%
+    ggplot2::ggplot(aes(key, id, fill = isna)) +
+      ggplot2::geom_raster(alpha = 0.8) +
+      ggplot2::scale_fill_manual(name = "", 
+                                 values = c('steelblue', 'tomato3'), 
+                                 labels = c("Present", "Missing")) +
+    ggplot2::labs(x = "Variable", y = "Row Number", 
+                  title = df) +
+    ggplot2::coord_flip()
+  
+  return(row.plot)
+}
+
+for (d in list("exposome.clean", "prot.clean", "mets.clean", "metu.clean", 
+               "exposome.clean2", "prot.clean2", "mets.clean2", "metu.clean2")) {
+  print(plot.missings(d))
+}
+```
+
+# Diagnosis of problematic variables
+
+```{r}
+rm(list = ls())
+load("./code/env")
+source("./code/multivariate_analysis/preprocess.R")
+
+library(dlookr)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(tidyr)
+library(readr)
+library(stringr)
+library(tibble)
+library(FactoMineR)
+library(factoextra)
+```
+
+```{r}
+# Generate report with qqplot and histogram of all the variables for 
+# each -omic dataset
+
+grids.plots <- list()
+
+for (dat in c("exp_", "omic_", "metadata")) {
+  if (dat == "exp_" | dat == "metadata") {
+    mols <- c("metabun")
+  } else {
+    mols <- c("metabun", "metab_blood", "proteome")
+  }
+  for (mol in mols) {
+    for (time.point in c(1, 2)) {
+      time.point.tmp <- ifelse(time.point == 1, "", "2")
+
+      if (dat == "metadata") {
+        dat.report <- get(paste0(dat, time.point.tmp))
+      } else {
+        dat.report <- get(paste0(dat, mol, time.point.tmp)) %>%
+          dplyr::select(-c(HelixID, SubjectID)) %>%
+          dplyr::select(-dplyr::contains("cdesc")) %>%
+          tidyr::drop_na()
+        
+        for (var in colnames(dat.report)) {
+          qq.plot <- ggplot2::ggplot(dat.report, aes_string(sample = var)) +
+            ggplot2::stat_qq() + ggplot2::stat_qq_line()
+          hist.plot <- ggplot2::ggplot(dat.report, aes_string(x = var)) +
+            ggplot2::geom_histogram()
+          
+          grid.plot <- gridExtra::arrangeGrob(qq.plot, hist.plot, 
+                                              top = paste(dat, mol, time.point, sep = " "))
+          grids.plots <- append(grids.plots, list(grid.plot))
+        }
+      }
+
+    }
+  }
+}
+
+ggplot2::ggsave("./diagnose.pdf", gridExtra::marrangeGrob(grobs = grids.plots, 
+                                                     nrow = 1, ncol = 1), 
+                width = 11, height = 8.5)
+```
+
+```{r}
+# Read-in the txt file I wrote containing information on which variables 
+# I believe are problematic for (s)PLS
+
+res.problematics.vars <- readr::read_lines("./results/imputation/problematic_vars.txt")
+problematics.vars <- list()
+for (line in res.problematics.vars[seq_along(res.problematics.vars) %%2 > 0]) {
+  line <- stringr::str_split(line, pattern = ":")[[1]][2] %>%
+    stringr::str_split(., pattern = " ")
+  var <- line[[1]][2]
+  
+  problematics.vars <- append(problematics.vars, list(var))
+}
+```
+
+```{r}
+# Sub-select in each -omic dataset the "problematic" variables
+
+problematics.vars <- append(problematics.vars, c("SubjectID"))
+
+met.u1.problematic <- omic_metabun %>%
+  dplyr::select(dplyr::one_of(as.character(problematics.vars))) %>%
+          tidyr::drop_na()
+met.u2.problematic <- omic_metabun2 %>%
+  dplyr::select(dplyr::one_of(as.character(problematics.vars))) %>%
+          tidyr::drop_na()
+
+met.b1.problematic <- omic_metab_blood %>%
+  dplyr::select(dplyr::one_of(as.character(problematics.vars))) %>%
+          tidyr::drop_na()
+met.b2.problematic <- omic_metab_blood2 %>%
+  dplyr::select(dplyr::one_of(as.character(problematics.vars))) %>%
+          tidyr::drop_na()
+
+prot1.problematic <- omic_proteome %>%
+  dplyr::select(dplyr::one_of(as.character(problematics.vars))) %>%
+          tidyr::drop_na()
+prot2.problematic <- omic_proteome2 %>%
+  dplyr::select(dplyr::one_of(as.character(problematics.vars))) %>%
+          tidyr::drop_na()
+
+all.problematic <- list(met.u1.problematic, met.u2.problematic, 
+                        met.b1.problematic, met.b2.problematic, 
+                        prot1.problematic, prot2.problematic)
+```
+
+```{r}
+# Check whether the problem lies in the variables or the 
+# subjects. If the same subjects are present in the different 
+# combinations of omic-omic pairs, then the problem is the variable
+
+find.intersection.subjects <- function(dat1, dat2) {
+  ret <- dplyr::intersect(dat1$SubjectID, dat2$SubjectID)
+  print(paste("Dimension of dat1: ", dim(dat1)[1]))
+  print(paste("Dimension of dat2: ", dim(dat2)[1]))
+  print(paste("Number of shared subjects: ", length(ret)))
+  cat("\n")
+}
+
+cat("Same data, different time point\n")
+print(find.intersection.subjects(met.b1.problematic, met.b2.problematic))
+print(find.intersection.subjects(met.u1.problematic, met.u2.problematic))
+print(find.intersection.subjects(prot1.problematic, prot2.problematic))
+cat("\n#################################################\n")
+
+cat("\nSerum Metabolome 1, different time point\n")
+print(find.intersection.subjects(met.b1.problematic, met.u1.problematic))
+print(find.intersection.subjects(met.b1.problematic, met.u2.problematic))
+print(find.intersection.subjects(met.b1.problematic, prot1.problematic))
+print(find.intersection.subjects(met.b1.problematic, prot2.problematic))
+cat("\n#################################################\n")
+
+cat("\nSerum Metabolome 2, different time point\n")
+print(find.intersection.subjects(met.b2.problematic, met.u1.problematic))
+print(find.intersection.subjects(met.b2.problematic, met.u2.problematic))
+print(find.intersection.subjects(met.b2.problematic, prot1.problematic))
+print(find.intersection.subjects(met.b2.problematic, prot2.problematic))
+cat("\n#################################################\n")
+
+cat("\nUrinary Metabolome 1, different time point\n")
+print(find.intersection.subjects(met.u1.problematic, prot1.problematic))
+print(find.intersection.subjects(met.u1.problematic, prot2.problematic))
+cat("\n#################################################\n")
+
+cat("\nUrinary Metabolome 2, different time point\n")
+print(find.intersection.subjects(met.u2.problematic, prot1.problematic))
+print(find.intersection.subjects(met.u2.problematic, prot2.problematic))
+```
+
+```{r, fig.width=15, fig.height=6}
+# Perform PCA and color by problematic vs. non-problematic variables
+
+plot.pca.problematic <- function(dat, problematic.vars) {
+  dat <- dat  %>% tidyr::drop_na()
+  dat <- scale.by.group(data = dat, group = "cohort", start = 1, end = 3, 
+                        method = "autoscale")
+  dat <- dat  %>%
+    dplyr::select(-c("HelixID", "SubjectID")) %>%
+    dplyr::ungroup()
+  cohort <- as.data.frame(dat$group) %>% `colnames<-`(c("cohort"))
+  dat <- dat %>% dplyr::select(-c(group))
+  
+  non.problematics <- dat %>%
+    dplyr::select(-dplyr::one_of(as.character(problematics.vars)))
+  
+  problematics <- dat %>%
+    dplyr::select(dplyr::one_of(as.character(problematics.vars)))
+  
+  vars <- colnames(dat)
+  group.vars <- lapply(vars, function(x) ifelse(x %in% problematic.vars, 
+                                                "problematic", "not problematic")) %>%
+    unlist() %>% as.vector()
+  
+  res.pca <- FactoMineR::PCA(dat, 
+                             scale. = F, graph = F)
+  dat <- cbind(dat, cohort)
+  ret <- factoextra::fviz_pca_biplot(res.pca, 
+                                     geom.ind = "point", 
+                                     pointshape = 21, 
+                                     col.ind = "black", fill.ind = as.factor(dat$cohort), 
+                                     geom.var = "arrow", 
+                                     col.var = as.factor(group.vars))
+  
+  return(ret)
+}
+
+plot(gridExtra::arrangeGrob(grobs = list(plot.pca.problematic(omic_proteome, problematics.vars), 
+                                         plot.pca.problematic(omic_proteome2, problematics.vars)), 
+                            ncol = 2))
+ggplot2::ggsave(filename = "omicProteome_PCA_autoscale.png", device = "png", 
+                path = "./results/meeting_250821/figures/", 
+                width = 6, height = 3)
+
+plot(gridExtra::arrangeGrob(grobs = list(plot.pca.problematic(omic_metab_blood, problematics.vars), 
+                                         plot.pca.problematic(omic_metab_blood2, problematics.vars)), 
+                            ncol = 2))
+ggplot2::ggsave(filename = "omicMetabBlood_PCA_autoscale.png", device = "png", 
+                path = "./results/meeting_250821/figures/", 
+                width = 6, height = 3)
+
+plot(gridExtra::arrangeGrob(grobs = list(plot.pca.problematic(omic_metabun, problematics.vars), 
+                                         plot.pca.problematic(omic_metabun2, problematics.vars)), 
+                            ncol = 2))
+ggplot2::ggsave(filename = "omicMetabUn_PCA_autoscale.png", device = "png", 
+                path = "./results/meeting_250821/figures/", 
+                width = 6, height = 3)
+```
+

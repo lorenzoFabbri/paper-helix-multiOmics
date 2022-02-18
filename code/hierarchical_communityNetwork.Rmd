@@ -1,0 +1,43 @@
+---
+title: "Hierarchical Community Network"
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup}
+library(knitr)
+
+knitr::opts_knit$set(root.dir = '/home/lorenzo/Documents/university/PhD/papers/paper1_helix_multiOmics/paper-helix-multiOmics')
+```
+
+```{r, include=FALSE}
+source('./code/hierarchical_communityNetwork.R', local = knitr::knit_global())
+```
+
+```{r}
+
+########## IMPORTANT!!! ##########
+# There is no annotation file for the Proteome!
+
+exposome <- exp_metabun
+omics    <- omic_metabun
+```
+
+# Part I: PCA
+```{r}
+mods.res <- regress.exps.pcOmes(exposome, omics, metadata, 
+                                number.pcs = 5, scale.perf = TRUE)
+print(head(mods.res))
+```
+
+# Part II: Hierarchical Community Network
+```{r, fig.width = 20, fig.height = 10}
+hclust.correlation.exposome(exposome, omics, metadata, 
+                            scale.perf = TRUE, threshold = 0.3)
+```
+
+```{r, fig.width = 20, fig.height = 10}
+dend.omics <- hclust.omics(exposome, omics, metadata, 
+                           scale.perf = TRUE, threshold = 8)
+```
+

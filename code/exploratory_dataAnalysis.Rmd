@@ -1,0 +1,135 @@
+---
+title: "Exploratory Data Analysis"
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup}
+rm(list = ls())
+library(knitr)
+
+knitr::opts_knit$set(root.dir = '/home/lorenzo/Documents/university/PhD/papers/paper1_helix_multiOmics/paper-helix-multiOmics')
+```
+
+
+The purpose of this notebook is to perform some Exploratory Data Analysis on both 
+the Exposome and Multi-Omics (Metabolome, Proteome) data.
+
+# Helper Functions
+```{r, include=FALSE}
+library(dplyr)
+library(GGally)
+library(ggplot2)
+library(ggcorrplot)
+library(heatmaply)
+library(tidyHeatmap)
+library(ggh4x)
+library(reshape2)
+library(FactoMineR)
+library(factoextra)
+library(ggfortify)
+library(readxl)
+
+source('./code/exploratory_dataAnalysis.R', local = knitr::knit_global())
+```
+
+# Exposome
+
+```{r, fig.width = 10, fig.height = 6}
+# EDA Exposures 1
+dat1 <- load.data(time.period = 1)
+exp_metab_blood  <- dat1[[1]]
+exp_metabun      <- dat1[[2]]
+exp_proteome     <- dat1[[3]]
+omic_metab_blood <- dat1[[4]]
+omic_metabun     <- dat1[[5]]
+omic_proteome    <- dat1[[6]]
+metadata         <- dat1[[7]]
+
+eda.exposome(time.period = 1)
+```
+
+```{r, fig.width = 10, fig.height = 6}
+# EDA Exposures 2
+dat2 <- load.data(time.period = 2)
+exp_metab_blood2  <- dat2[[1]]
+exp_metabun2      <- dat2[[2]]
+exp_proteome2     <- dat2[[3]]
+omic_metab_blood2 <- dat2[[4]]
+omic_metabun2     <- dat2[[5]]
+omic_proteome2    <- dat2[[6]]
+metadata2         <- dat2[[7]]
+
+eda.exposome(time.period = 2)
+```
+
+```{r, fig.width = 10, fig.height = 6}
+# Correlation exposures between time points
+correlation.variables.time.run('exposome')
+```
+
+
+# Multi-Omics
+
+```{r}
+# zBMI is stored in another dataset (file)
+path.bmi <- '/run/user/1000/gvfs/smb-share:server=fs01.isglobal.lan,share=data/ws_helix/HELIX_analyses/Omics_variability/Metadata/metadata.xlsx'
+# metadata.bmi <- readxl::read_xlsx(path.bmi, sheet = 1)
+# metadata.bmi.1 <- metadata.bmi %>%
+#   filter(period == "A")  # Period 1
+# 
+# metadata <- metadata %>%
+#   inner_join(metadata.bmi.1[, c("HelixID", "zBMI")], by = "HelixID")
+```
+
+```{r, fig.width = 10, fig.height = 6}
+# EDA Omics 1
+eda.omics(time.period = 1)
+```
+
+```{r, fig.width = 10, fig.height = 6}
+# EDA Omics 2
+eda.omics(time.period = 2)
+```
+
+```{r}
+# Playing around with grouping subjects in PCA biplots
+# datum <- "omic_proteome"
+# time.period <- 1
+# 
+# metadata.tmp <- metadata %>%
+#   filter(HelixID %in% get(datum)$HelixID)
+# 
+# data.tmp <- get(datum) %>%
+#   dplyr::select(where(is.numeric)) %>%
+#   dplyr::select(-SubjectID)
+# 
+# pca.res <- FactoMineR::PCA(data.tmp, scale. = TRUE, graph = TRUE)
+# 
+# # Variance explained by PCs
+# pca.var_explained <- factoextra::fviz_screeplot(pca.res)
+# print(pca.var_explained)
+# 
+# # Biplot
+# pca.plt <- factoextra::fviz_pca_biplot(pca.res, 
+#                                        geom.ind = "point", label = "var", addEllipses = TRUE, 
+#                                        habillage = as.factor(metadata.tmp$ethn))
+# print(pca.plt)
+# 
+# # Contribution of single variables
+# pca.contrib.plot <- factoextra::fviz_contrib(X = pca.res, choice = "var", 
+#                                              axes = c(1))
+# print(pca.contrib.plot)
+# 
+# # PCR
+# pcs <- pca.res$ind$coord
+```
+
+```{r, fig.width = 12, fig.height = 6}
+# Correlation -omics between time points
+correlation.variables.time.run('omics')
+```
+
+```{r}
+save.image("./code/env")
+```

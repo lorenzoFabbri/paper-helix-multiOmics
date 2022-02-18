@@ -1,0 +1,83 @@
+---
+title: "Multivariate Analysis"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+editor_options:
+  chunk_output_type: inline
+output: html_document
+params:
+  omic.type: ""
+  stratification.group: ""
+  stratification: ""
+  time.point: ""
+  num.components: ""
+  is.sparse: ""
+  perform.adj: ""
+  log.transform: ""
+  scale.new: ""
+  max.iter: ""
+  nrepeat: ""
+  nfolds: ""
+  model.code: ""
+  color.by.indiv: ""
+  plotting: ""
+  path.save: ""
+---
+
+```{r setup}
+library(knitr)
+library(dplyr)
+
+knitr::opts_knit$set(root.dir = '/home/lorenzo/Documents/university/PhD/papers/paper1_helix_multiOmics/paper-helix-multiOmics')
+knitr::opts_chunk$set(echo = TRUE, rows.print = 150)
+```
+
+```{r}
+# Load datasets created/loaded with the exploratory_dataAnalysis Notebook
+load("./code/env")
+
+time.point <- ifelse(params$time.point == 1, "", "2")
+
+exposome <- get(paste0("exp_", params$omic.type, time.point))
+omic     <- get(paste0("omic_", params$omic.type, time.point))
+
+metadata     <- get(paste0("metadata", time.point))
+metadata_all <- readr::read_csv("./data/metadata_all.csv", col_names = TRUE)
+metadata     <- metadata_all %>%
+  filter(period == ifelse(params$time.point == 1, "A", "B")) %>%
+  inner_join(metadata, by = "HelixID")
+
+dat <- list(
+  exposures = exposome, 
+  omics     = omic, 
+  metadata  = metadata
+)
+```
+
+# Simple sPLS: Only One -Omic Layer
+```{r, fig.width = 12, fig.height = 7}
+
+ret <- perform.analysis.main(data = dat, 
+                             type.pls = "simple", pls.params = params, 
+                             validate = FALSE)
+```
+
+```{r, fig.width = 12, fig.height = 7, echo=FALSE, message=FALSE, results='hide'}
+ret <- render.reports()
+```
+
+## Interpretation of (s)PLS results
+The following graphical outputs can be used to visualize pairwise associations between biological entities highlighted by CCA or PLS (taken from BioData Mining 2012,5:19):
+
+* Correlation Circles plots
+They enable a graphical examination of the relationships between variables and variates. The coordinates of the variables in this plot are obtained computing the correlation between each original variable and their associated component. The relationship (correlation) between the two types of variables can be approximated by the inner product between the associated vectors (visualized through the angles between two vectors). The longer the distance to the origin, the stronger the relationship between the variables: for variables close to the origin, it might be necessary to use subsequent dimensions. Variables or group of variables strongly positively correlated are projected closely to each other. When the correlation is strongly negative, the groups of variables are projected at diametrically opposite places. The groups of variables that are not correlated are situated 90 degrees one from the other. A threshold can be chosen to remove some weaker associations
+
+* Relevance Networks
+Simple approach for modelling net-like correlation structures between two datasets. The result is a graph where nodes represent variables and edges represent variable associations, all starting from the correlation matrix. Nodes from X can only be connected to nodes from Y (bipartite graph or bigraph). These networks are inferred using a pairwise similarity matrix obtained from the outputs of e.g., PLS. The values in the similarity matrix can be considered as robust approximation of the Pearson correlation. One looks for clusters of sub-networks of subsets of variables, where the edge color represent the nature of the correlation. Each of these clusters often highlight a specific correlation structure between the features and can be further studies with e.g., GO Terms
+
+* Clustered Image Maps (CIM)
+Also called clustered correlation or heatmaps. Based on a hierarchical clustering simultaneously operating as a 2-dimensional colored image, where each entry is colored on the basis of its value, and where the rows and the columns are reordered according to the clustering. One looks for well defined large rectangles or squares of the same color corresponding to long branches of the dendograms.
+
+## Notes on (s)PLS
+* It is believed that R2, Q2 and MSEP are not well adapted for a case with several Y variables. These measures were primarily developed for a single Y variable
+
+* The 0.0975 rule of thumb says that we keep adding components if Q2.total^2 >= 0.0975

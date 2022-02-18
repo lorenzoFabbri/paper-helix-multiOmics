@@ -1,0 +1,196 @@
+---
+title: "Comparison Regression Methods"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup}
+rm(list = ls())
+
+library(knitr)
+knitr::opts_knit$set(root.dir = '/home/lorenzo/Documents/university/PhD/papers/paper1_helix_multiOmics/paper-helix-multiOmics')
+```
+
+```{r}
+source("code/comparison_methods.R")
+load("code/env")
+```
+
+```{r}
+library(gridExtra)
+library(ggrepel)
+```
+
+```{r}
+covariates.char <- c("cohort.x", "e3_sex.x")
+covariates.num  <- c("age_sample_years.x", "zBMI")
+covariates <- list(covariates.char = covariates.char, 
+                   covariates.num = covariates.num)
+
+omic.type <- "metabun"
+perform.scaling <- TRUE
+
+# -log10(x) = 3 -> x = 10^(-3) = 0.001
+#threshold <- 3
+threshold <- -log10(0.05)
+
+regularization.type <- "lasso"
+```
+
+
+# Simple Regression: 1 -omics ~ 1 exposure + covariates
+Simple regression models equivalent to an ExWAS study, with the need to 
+control for multiple testing.
+
+Methods available:
+- [x] GLM
+- [] Spearman's Correlation
+- [] GEE (but only 2 time points).
+
+```{r, fig.height=6, fig.width=10}
+# Method: GLM
+# Time period: 1
+
+params = list(
+  time.point = 1, 
+  omic.type = omic.type, 
+  scale.new = list(perform = perform.scaling, 
+                   group = "cohort", method = "range"), 
+  validate = FALSE, 
+  adjust = list(perform = TRUE, method = "residual", list = covariates), 
+  method.regression = "glm", 
+  family.glm = "gaussian", 
+  boot = list(perform = TRUE, times = 5)
+)
+
+dat <- generate.clean.data(params = params)
+
+res.glm <- simple.oneToOne(data = dat$data.preprocessed, 
+                           params = params, 
+                           formula.covariates = dat$formula)
+
+# res.glm.threshold <- res.glm %>%
+#   adjust.pvals(., method = "fdr") %>%
+#   dplyr::filter(-log10(p.adjusted) >= threshold) %>%
+#   print(.)
+if (params$boot$perform == FALSE) {
+  plt1 <- plot.pvals(res.glm %>% adjust.pvals(., method = "fdr"), 
+                     threshold = threshold)
+  plt1
+} else {
+  # Saved to file since too big
+  plt1 <- plot.boots(df = res.glm, x = "exposure", y = "omic", 
+                     path.save = "~/Downloads/")
+}
+```
+
+```{r, fig.height=6, fig.width=10}
+# Method: GLM
+# Time period: 2
+
+params = list(
+  time.point = 2, 
+  omic.type = omic.type, 
+  scale.new = list(perform = perform.scaling, 
+                   group = "cohort", method = "range"), 
+  validate = FALSE, 
+  adjust = list(perform = TRUE, method = "residual", list = covariates), 
+  method.regression = "glm", 
+  family.glm = "gaussian", 
+  boot = list(perform = FALSE, times = 5)
+)
+
+dat <- generate.clean.data(params = params)
+
+res.glm <- simple.oneToOne(data = dat$data.preprocessed, 
+                           params = params, 
+                           formula.covariates = dat$formula)
+
+if (params$boot$perform == FALSE) {
+  plt2 <- plot.pvals(res.glm %>% adjust.pvals(., method = "fdr"), 
+                     threshold = threshold)
+  plt2
+} else {
+  # Saved to file since too big
+  plt2 <- plot.boots(df = res.glm, x = "exposure", y = "omic", 
+                     path.save = "~/Downloads/")
+}
+```
+
+```{r, fig.height=6, fig.width=10}
+# Compare results time points 1 and 2
+# gridExtra::grid.arrange(plt1, plt2, 
+#                         nrow = 2, ncol = 1)
+```
+
+
+# Simple Regression: 1 -omics ~ all exposures + covariates
+Simple regression models equivalent to an ExWAS study but considering all the 
+exposures at once. May be suitable in this case since the number of exposures 
+is not too large and they are not very correlated.
+
+Methods available:
+- [x] GLM
+- [] GEE (but only 2 time points)
+- [~] Regularized models (Lasso, Ridge, (A)ENet(-I))
+- [] (s, g, sg, O2)PLS.
+
+```{r, fig.height=8, fig.width=20}
+# Method: GLM
+# Time period: 1
+
+params = list(
+  time.point = 1, 
+  omic.type = omic.type, 
+  scale.new = list(perform = perform.scaling, 
+                   group = "cohort", method = "range"), 
+  validate = FALSE, 
+  adjust = list(perform = TRUE, method = "residual", list = covariates), 
+  method.regression = "pls", 
+  family.glm = "gaussian", 
+  boot = list(perform = FALSE, times = 2), 
+  regularization = list(type = ifelse(regularization.type == "lasso", 1, 0), 
+                        family = "gaussian", 
+                        intercept = TRUE), 
+  pls = list(ncomp = 3, method = "simpls")
+)
+
+dat <- generate.clean.data(params = params)
+
+res.glm <- simple.oneToMany(data = dat$data.preprocessed, 
+                            params = params, 
+                            formula.covariates = dat$formula)
+
+if (!(params$method.regression == "pls")) {
+  if (params$boot$perform == FALSE) {
+    plt1 <- plot.pvals(res.glm %>% adjust.pvals(., method = "fdr"), 
+                       threshold = threshold)
+    plt1
+  } else {
+    # Saved to file since too big
+    plt1 <- plot.boots(df = res.glm, x = "exposure", y = "omic", 
+                       path.save = "~/Downloads/")
+  }
+}
+```
+
+
+# Multi-Outcome Regression: all -omics ~ 1 exposure + covariates
+Multi-outcome regression models still considering one exposure at a time, 
+with the difference that all the -omic variables are considered as outcome for 
+each model.
+
+Methods available:
+- [?] GEE (but only 2 time points)
+- [] Regularized models (Lasso, Ridge, (A)ENet(-I))
+- [] (s, g, sg, O2)PLS.
+
+
+# Multi-Outcome Regression: all -omics ~ all exposures + covariates
+Multi-outcome, Multi-variate regression models.
+
+Methods available:
+- [?] GEE (but only 2 time points)
+- [] Regularized models (Lasso, Ridge, (A)ENet(-I))
+- [] (s, g, sg, O2)PLS.
