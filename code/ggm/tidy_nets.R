@@ -120,7 +120,7 @@ for (i in 1:num.ccs) {
       ggraph::geom_edge_link(colour = "darkgrey", alpha = 0.75) +
       ggraph::geom_node_point(mapping = aes(shape = label, size = degree, 
                                             color = class)) +
-      ggraph::geom_node_text(mapping = aes(label = name, filter = degree >= 5), 
+      ggraph::geom_node_text(mapping = aes(label = name), #filter = degree >= 5), 
                              repel = TRUE, size = 5) +
       ggplot2::theme_classic() +
       ggplot2::scale_color_manual(values = map.class.to.col, drop = TRUE) +

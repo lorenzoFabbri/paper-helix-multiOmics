@@ -5,7 +5,7 @@
 #SBATCH --mail-user=lorenzo.fabbri@isglobal.org
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=25
-#SBATCH --mem=100gb
+#SBATCH --mem=140gb
 #SBATCH --output=/PROJECTES/HELIX/lorenzoF/logs/ewas.log
 
 module purge > /dev/null 2>&1

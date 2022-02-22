@@ -7,7 +7,7 @@ meth <- load.methylome(filter.time = list(
 ))
 
 options(stringsAsFactors = FALSE)
-enableWGCNAThreads(nThreads = 18)
+enableWGCNAThreads(nThreads = 2)
 
 datExpr <- meth %>%
   dplyr::filter(grepl("_1A", SampleID)) %>%
@@ -25,4 +25,4 @@ bwnet = WGCNA::blockwiseModules(datExpr,
                                 reassignThreshold = 0, mergeCutHeight = 0.25, 
                                 numericLabels = TRUE, 
                                 saveTOMs = FALSE, saveTOMFileBase = "methyl", 
-                                verbose = 7, nThreads = 18)
+                                verbose = 7, nThreads = 1)

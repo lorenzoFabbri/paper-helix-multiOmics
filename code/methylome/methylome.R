@@ -184,7 +184,7 @@ filter.by.reliability <- function(dat, cutoff.rel) {
   
   reliability.results <- openxlsx::read.xlsx("../data/methylome/Sugden_MethylationReliability_Data_S1.xlsx", 
                                              startRow = 3) %>%
-    dplyr::filter(Reliability >= cutoff.rel)
+    dplyr::filter(Reliability > cutoff.rel)
   
   # Methylation sites form HELIX data
   meth <- dat %>% dplyr::select(tidyselect::contains("_me")) %>%
@@ -204,7 +204,7 @@ filter.by.reliability <- function(dat, cutoff.rel) {
 ##### Main function to run EWAS w/ EWAFF #####
 ##############################################
 methylome.ewaff <- function(meth, time.point, perform.adj) {
-  options(mc.cores = 24)
+  options(mc.cores = 25)
   path.data <- "../data/"
   path.meta <- "data/"
   
@@ -253,13 +253,19 @@ methylome.ewaff <- function(meth, time.point, perform.adj) {
     stop(call. = TRUE)
   }
   
+  # Filter by reliability score (0.6=good, 0.75=excellent)
+  reliable.sites <- filter.by.reliability(dat = meth.time, 
+                                          cutoff.rel = 0.6) %>%
+    paste0(., "_me")
+  meth.time <- meth.time %>%
+    dplyr::select(dplyr::all_of(c("SampleID", reliable.sites)))
+  
   # Prepare datasets for analyses
   meth.time <- meth.time %>% dplyr::select(tidyselect::contains("_me")) %>%
     t()
   gc()
   exposome <- exposome %>% dplyr::select(-c(SampleID, HelixID))
   exposome <- robustHD::robStandardize(exposome)
-  #exposome <- scale(exposome, center = TRUE, scale = TRUE)
   metadata <- metadata %>% dplyr::select(dplyr::all_of(
     list.covariates() %>% unlist() %>% unname()
   )) %>%
@@ -275,13 +281,15 @@ methylome.ewaff <- function(meth, time.point, perform.adj) {
     cat(paste0("Fitting models for: ", exposure, ".\n"))
     
     # Winsorize exposure
-    X[[exposure]] <- robustHD::winsorize(X[[exposure]], standardized = TRUE)
+    #X[[exposure]] <- robustHD::winsorize(X[[exposure]], standardized = TRUE)
     
     if (perform.adj == TRUE) {
       x <- X %>% dplyr::select(dplyr::all_of(c(exposure, colnames(metadata))))
     } else {
       x <- X %>% dplyr::select(exposure)
     }
+    x <- data.frame(x)
+    gc()
     
     # Handle putative outliers
     methylation.no.outliers <- ewaff::ewaff.handle.outliers(methylation = meth.time, 
@@ -291,7 +299,12 @@ methylome.ewaff <- function(meth, time.point, perform.adj) {
     cpg.sites <- rownames(methylation.no.outliers)
     methylation.no.outliers <- as.data.frame(methylation.no.outliers)
     rownames(methylation.no.outliers) <- cpg.sites
+    
+    ############################################################################
+    # Otherwise complains when computing SVs (e.g. SVA)
+    methylation.no.outliers <- as.matrix(methylation.no.outliers)
     gc()
+    ############################################################################
     
     if (perform.adj == TRUE) {
       formula.tmp <- paste("methylation~", exposure, "+", 
@@ -299,11 +312,13 @@ methylome.ewaff <- function(meth, time.point, perform.adj) {
     } else {
       formula.tmp <- paste("methylation~", exposure)
     }
+    
     res.tmp <- ewaff::ewaff.sites(formula = formula.tmp, 
                                   variable.of.interest = exposure, 
                                   methylation = methylation.no.outliers, 
-                                  data = data.frame(x), 
-                                  method = "rlm")
+                                  data = x, 
+                                  method = "rlm", 
+                                  generate.confounders = "smartsva")
     
     ret <- res.tmp$table %>% as.data.frame() %>%
       tibble::rownames_to_column(var = "cpg") %>%

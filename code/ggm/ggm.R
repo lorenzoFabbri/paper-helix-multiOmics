@@ -107,6 +107,7 @@ main.pipeline.ggm <- function(params) {
     el$plotting    <- plotting
     el$stratification <- stratification
     el$stratify.by.outcome <- stratify.by.outcome
+    el$boot <- params$boot
     
     # scaling . adjustment . correlation . time . omic . exposure
     el$model.code <- paste0("mod_", 
@@ -235,6 +236,33 @@ perform.analysis <- function(params) {
                                             paste0("common_samples_t", 
                                                    params$time.point, ".csv"))) %>%
     `colnames<-`(c("HelixID"))
+  
+  ######################### Bootstrapping #########################
+  # Bootstrapping for subjects
+  if (params$boot$perform) {
+    ## Subjects from t1
+    common.subjects1 <- readr::read_csv(paste0(path.meta, 
+                                              paste0("common_samples_t", 1, ".csv"))) %>%
+      `colnames<-`(c("HelixID"))
+    ## Subjects from t2
+    common.subjects2 <- readr::read_csv(paste0(path.meta, 
+                                              paste0("common_samples_t", 2, ".csv"))) %>%
+      `colnames<-`(c("HelixID"))
+    ## Common subjects by time point
+    common.subjects <- base::intersect(common.subjects1$HelixID, 
+                                       common.subjects2$HelixID)
+    
+    ## Sample subjects with replacement
+    seed <- params$boot$seed # Same by time point, different for each bootstrapping
+    set.seed(seed = seed)
+    #samples <- sample.int(n = length(common.subjects), replace = TRUE)
+    common.subjects <- sample(common.subjects, 
+                              size = length(common.subjects), replace = TRUE) %>%
+      tibble::as_tibble() %>%
+      `colnames<-`(c("HelixID"))
+  }
+  ##############################################################################
+  
   exposome <- exposome %>%
     dplyr::filter(HelixID %in% common.subjects$HelixID) %>%
     dplyr::select(-c("SampleID"))
@@ -330,6 +358,14 @@ fit.ggm <- function(data, params) {
   
   ## Fit model
   data <- base::cbind(data$exposures, data$omics)
+  
+  ######################### Bootstrapping #########################
+  # Select selected biomarkers from merged network
+  if (params$boot$perform) {
+    
+  }
+  ##############################################################################
+  
   base::saveRDS(object = data, file = "../data/dist_vars/data_matrix_processed")
   gc()
   dim.data <- dim(data)[1]

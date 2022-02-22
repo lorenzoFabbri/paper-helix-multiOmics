@@ -147,7 +147,7 @@ tables.networks <- function(path.to.net, time.point) {
     tidygraph::mutate(class = as.factor(net.nodes$class)) %>%
     tidygraph::to_undirected() %>%
     #tidygraph::mutate(hub.score = tidygraph::centrality_hub()) %>%
-    tidygraph::mutate(degree = tidygraph::centrality_degree())
+    tidygraph::mutate(degree = as.numeric(tidygraph::centrality_degree()))
   
   # Barplot of `degree` by class
   net.degree <- net %>% tidygraph::as_tibble() %>%
@@ -219,11 +219,16 @@ tables.networks <- function(path.to.net, time.point) {
       df.filtered <- df.filtered %>%
         dplyr::arrange(name.x, name.y, label.x, label.y, 
                        desc(pcor.x), desc(pcor.y)) %>%
-        `colnames<-`(c("node.a", "layer.a", "node.b", "layer.b", 
+        `colnames<-`(c("node.a", "layer.a", "degree.a", 
+                       "node.b", "layer.b", "degree.b", 
                        "pcor.a", "qval.a", "sign", "pcor.b", "qval.b")) %>%
-        dplyr::select(c(node.a, layer.a, node.b, layer.b, sign, 
-                        pcor.a, qval.a, pcor.b, qval.b))
-      colnames(df.filtered) <- c("node.a", "layer.a", "node.b", "layer.b", 
+        dplyr::select(c(node.a, layer.a, degree.a, 
+                        node.b, layer.b, degree.b, 
+                        sign, 
+                        pcor.a, qval.a, 
+                        pcor.b, qval.b))
+      colnames(df.filtered) <- c("node.a", "layer.a", "degree.a", 
+                                 "node.b", "layer.b", "degree.b", 
                                  "sign", 
                                  "pcor.t1", "qval.t1", "pcor.t2", "qval.t2")
     } else {
@@ -231,9 +236,12 @@ tables.networks <- function(path.to.net, time.point) {
       df.filtered <- df.filtered %>%
         dplyr::arrange(name.x, name.y, label.x, label.y, 
                        desc(pcor)) %>%
-        `colnames<-`(c("node.a", "layer.a", "node.b", "layer.b", 
+        `colnames<-`(c("node.a", "layer.a", "degree.a", 
+                       "node.b", "layer.b", "degree.b", 
                        "pcor", "qval", "sign")) %>%
-        dplyr::select(c(node.a, layer.a, node.b, layer.b, sign, 
+        dplyr::select(c(node.a, layer.a, degree.a, 
+                        node.b, layer.b, degree.b, 
+                        sign, 
                         pcor, qval))
     }
       
@@ -305,11 +313,11 @@ tables.networks <- function(path.to.net, time.point) {
     # Add results MeSH
     
     ret <- ret %>% dplyr::select(-c(column_label))
-    png(paste0("results/images/edges_net_", 
+    png(paste0("results/images/edges_net", 
                ifelse(
                  is.null(time.point), "Merged", time.point
                ), 
-               "direct.png"), 
+               "_direct.png"), 
         height = 50 * nrow(ret), width = 200 * ncol(ret))
     gridExtra::grid.table(ret, rows = NULL, theme = theme.table)
     dev.off()

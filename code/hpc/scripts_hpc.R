@@ -17,13 +17,16 @@ run_analysis <- function(choice, key.save.results) {
       method.ggm = "prob", 
       cutoff.ggm = 0.8, 
       method.mixed = tidygraph::group_infomap, 
-      path.save.plots = path.save.res
+      path.save.plots = path.save.res, 
+      boot = list(
+        perform = FALSE
+      )
     )
     
     ##### Pipeline #####
     ggms <- main.pipeline.ggm(params = list(
       omic.type = c("metabun", "metab_blood", "proteome", "methylome"), 
-      package.corr = active, is.hpc = TRUE, 
+      package.corr = active, is.hpc = FALSE, 
       key.save = key.save.results
     ))
     base::save(ggms, file = "../data/intermediate_res_ggm/ggms.RData")
@@ -51,6 +54,19 @@ run_analysis <- function(choice, key.save.results) {
                             how.to.join = "inner", 
                             type.networks = "ggm", 
                             path.save = path.save.res)
+      # Save name biomarkers for bootstrapping
+      name.biomarkers <- res$mod_2.2.2.5.5$net %>%
+        tidygraph::activate(what = "nodes") %>%
+        tibble::as_tibble() %>%
+        dplyr::mutate(name.ready = dplyr::case_when(
+          label == "exposure" ~ paste0("log.", tolower(name), "_e"), 
+          label == "proteome" ~ paste0(name, "_p"), 
+          label == "serum metabolome" ~ paste0(name, "_ms"), 
+          label == "urinary metabolome" ~ paste0(name, "_mu"), 
+          label == "methylome" ~ paste0(name, "_me")
+        )) %>%
+        write.csv(file = paste0(path.save.res, "merged_biomarkers.csv"), 
+                  quote = FALSE, row.names = FALSE)
     }
     base::save(res, 
                file = "../data/intermediate_res_ggm/merged_net.RData")
