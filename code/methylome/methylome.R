@@ -204,7 +204,6 @@ filter.by.reliability <- function(dat, cutoff.rel) {
 ##### Main function to run EWAS w/ EWAFF #####
 ##############################################
 methylome.ewaff <- function(meth, time.point, perform.adj) {
-  options(mc.cores = 25)
   path.data <- "../data/"
   path.meta <- "data/"
   

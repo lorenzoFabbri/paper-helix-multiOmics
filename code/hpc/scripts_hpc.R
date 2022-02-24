@@ -2,32 +2,33 @@
 # Author: Lorenzo Fabbri
 
 run_analysis <- function(choice, key.save.results) {
+  source("code/ggm/ggm.R")
+  
+  ##### Parameters GGMs #####
+  active <- "corpcor"
+  num.iters.boot <- 20
+  params <- list(
+    method.ggm = "prob", 
+    cutoff.ggm = 0.8, 
+    method.mixed = tidygraph::group_infomap, 
+    path.save.plots = path.save.res
+  )
+  ##############################################################################
   
   if (choice == "ggm") {
-    source("code/ggm/ggm.R")
-    
-    ##### Parameters #####
-    active <- "corpcor"
     path.save.res <- file.path(paste0("results/ggm/", key.save.results, "/"))
     if (!dir.exists(path.save.res)) {
       dir.create(path = path.save.res)
     }
     
-    params <- list(
-      method.ggm = "prob", 
-      cutoff.ggm = 0.8, 
-      method.mixed = tidygraph::group_infomap, 
-      path.save.plots = path.save.res, 
-      boot = list(
-        perform = FALSE
-      )
-    )
-    
     ##### Pipeline #####
     ggms <- main.pipeline.ggm(params = list(
       omic.type = c("metabun", "metab_blood", "proteome", "methylome"), 
       package.corr = active, is.hpc = FALSE, 
-      key.save = key.save.results
+      key.save = key.save.results, 
+      boot = list(
+        perform = FALSE
+      )
     ))
     base::save(ggms, file = "../data/intermediate_res_ggm/ggms.RData")
     cat("Processing models...\n")
@@ -65,7 +66,7 @@ run_analysis <- function(choice, key.save.results) {
           label == "urinary metabolome" ~ paste0(name, "_mu"), 
           label == "methylome" ~ paste0(name, "_me")
         )) %>%
-        write.csv(file = paste0(path.save.res, "merged_biomarkers.csv"), 
+        write.csv(file = paste0("data/merged_biomarkers_ggm.csv"), 
                   quote = FALSE, row.names = FALSE)
     }
     base::save(res, 
@@ -80,7 +81,44 @@ run_analysis <- function(choice, key.save.results) {
     
     cat("Analysing connected components...\n")
     analyse.cc(res$mod_2.2.2.5.5$net, path.save = path.save.res)
-  } # End if GGMs
+    # End if GGMs
+    ############################################################################
+    
+  } else if(choice == "ggm.boot") { # Bootstrapping
+    path.save.res <- file.path(paste0("results/ggm/", key.save.results, 
+                                      "_boot/"))
+    if (!dir.exists(path.save.res)) {
+      dir.create(path = path.save.res)
+    }
+    
+    for (itr in 1:num.iters.boot) {
+      cat(paste0("Bootstrapping. Iteration: ", itr, "...\n"))
+      
+      ggms <- main.pipeline.ggm(params = list(
+        omic.type = c("metabun", "metab_blood", "proteome", "methylome"), 
+        package.corr = active, is.hpc = FALSE, 
+        key.save = key.save.results, 
+        boot = list(
+          perform = TRUE
+        )
+      ))
+      processed.ggms <- process.ggms(list.ggms = ggms, active = active, 
+                                     filter.mixed.interactions = FALSE, 
+                                     is.directed = FALSE, 
+                                     params = params)
+      rm(ggms)
+      gc()
+      res <- merge.networks(ggms = processed.ggms, exposure.group = 5, 
+                            how.to.join = "inner", 
+                            type.networks = "ggm", 
+                            path.save = path.save.res)
+      base::save(res, 
+                 file = paste0(path.save.res, "merged_net", itr, ".RData"))
+      rm(processed.ggms)
+      gc()
+    } # End loop bootstrapping
+    
+  } # End choice bootstrapping
   
 } # End function run analyses HPC
 

@@ -146,16 +146,36 @@ perform.analysis <- function(params) {
     ## We are using data from the new HPC cluster
     
     # Filtered CG sites
-    filtered.cgs <- readr::read_csv("data/cpgs_ewaffWIN_common.csv", 
-                                    col_names = TRUE) %>%
+    filtered.cgs <- readr::read_csv("data/cpgs_ewaffXXX_common.csv", 
+                                    col_names = TRUE, 
+                                    col_types = cols()) %>%
       as.list() %>% .$value
     
     path.data.methylome <- "../data/methylome/"
     name.methylome <- "methylome_panel_ComBatSlide_6cells_v4.csv"
     cat("\nLoading Methylome data...\n")
-    meth <- data.table::fread(paste0(path.data.methylome, name.methylome), 
-                              nThread = 10) %>%
-      dplyr::as_tibble() %>%
+    
+    if (params$boot$perform) {
+      # Load only selected CpG sites for bootstrapping
+      selected.biomarkers <- read.csv("data/merged_biomarkers_ggm.csv") %>%
+        .$name.ready
+      cpg.sites <- selected.biomarkers %>%
+        dplyr::filter(label == "methylome") %>%
+        dplyr::rowwise() %>%
+        dplyr::mutate(name.ready = strsplit(name.ready, "_")[[1]][1])
+      meth <- data.table::fread(paste0(path.data.methylome, name.methylome), 
+                                select = c("SampleID", "HelixID", 
+                                           cpg.sites$name.ready), 
+                                nThread = 10) %>%
+        dplyr::as_tibble()
+    } else {
+      meth <- data.table::fread(paste0(path.data.methylome, name.methylome), 
+                                nThread = 10) %>%
+        dplyr::as_tibble()
+    }
+    ############################################################################
+    gc()
+    meth <- meth %>%
       dplyr::filter(., grepl(ifelse(
         params$time.point == 1, "_1A", "_1B"
       ), SampleID)) %>%
@@ -215,7 +235,8 @@ perform.analysis <- function(params) {
   if (params$is.hpc == TRUE) { rm("meth") }
   gc()
   
-  season <- readr::read_csv(paste0(path.meta, "metadata_old.csv"), col_names = TRUE) %>%
+  season <- readr::read_csv(paste0(path.meta, "metadata_old.csv"), 
+                            col_names = TRUE, col_types = cols()) %>%
     dplyr::select(c(SampleID, season, period)) %>%
     dplyr::filter(period == ifelse(params$time.point == 1, "A", "B")) %>%
     dplyr::mutate(SampleID = gsub("EDP", "EDE", SampleID)) %>%
@@ -226,7 +247,7 @@ perform.analysis <- function(params) {
   
   metadata <- readr::read_csv(file = paste0(path.meta, "meta", 
                                             params$time.point, ".csv"), 
-                              col_names = TRUE) %>%
+                              col_names = TRUE, col_types = cols()) %>%
     dplyr::select(-tidyselect::contains("HelixID")) %>%
     dplyr::mutate(HelixID = from.sample.to.helix(SampleID)) %>%
     dplyr::inner_join(season)
@@ -234,7 +255,8 @@ perform.analysis <- function(params) {
   # Filter out subjects not present in other time point and/or data types
   common.subjects <- readr::read_csv(paste0(path.meta, 
                                             paste0("common_samples_t", 
-                                                   params$time.point, ".csv"))) %>%
+                                                   params$time.point, ".csv")), 
+                                     col_types = cols()) %>%
     `colnames<-`(c("HelixID"))
   
   ######################### Bootstrapping #########################
@@ -242,11 +264,13 @@ perform.analysis <- function(params) {
   if (params$boot$perform) {
     ## Subjects from t1
     common.subjects1 <- readr::read_csv(paste0(path.meta, 
-                                              paste0("common_samples_t", 1, ".csv"))) %>%
+                                              paste0("common_samples_t", 1, ".csv")), 
+                                        col_types = cols()) %>%
       `colnames<-`(c("HelixID"))
     ## Subjects from t2
     common.subjects2 <- readr::read_csv(paste0(path.meta, 
-                                              paste0("common_samples_t", 2, ".csv"))) %>%
+                                              paste0("common_samples_t", 2, ".csv")), 
+                                        col_types = cols()) %>%
       `colnames<-`(c("HelixID"))
     ## Common subjects by time point
     common.subjects <- base::intersect(common.subjects1$HelixID, 
@@ -255,24 +279,34 @@ perform.analysis <- function(params) {
     ## Sample subjects with replacement
     seed <- params$boot$seed # Same by time point, different for each bootstrapping
     set.seed(seed = seed)
-    #samples <- sample.int(n = length(common.subjects), replace = TRUE)
-    common.subjects <- sample(common.subjects, 
-                              size = length(common.subjects), replace = TRUE) %>%
-      tibble::as_tibble() %>%
-      `colnames<-`(c("HelixID"))
+    common.subjects <- sample.int(n = length(common.subjects), replace = TRUE)
+    # common.subjects <- sample(common.subjects, 
+    #                           size = length(common.subjects), replace = TRUE) %>%
+    #   tibble::as_tibble() %>%
+    #   `colnames<-`(c("HelixID"))
   }
   ##############################################################################
   
-  exposome <- exposome %>%
-    dplyr::filter(HelixID %in% common.subjects$HelixID) %>%
-    dplyr::select(-c("SampleID"))
-  omic <- omic %>%
-    dplyr::filter(HelixID %in% common.subjects$HelixID) %>%
-    dplyr::select(-c("SampleID"))
-  metadata <- metadata %>%
-    dplyr::filter(HelixID %in% common.subjects$HelixID) %>%
-    dplyr::rename(zBMI = hs_zbmi_theano) %>%
-    dplyr::select(-c("SampleID"))
+  if (!params$boot$perform) {
+    exposome <- exposome %>%
+      dplyr::filter(HelixID %in% common.subjects$HelixID) %>%
+      dplyr::select(-c("SampleID"))
+    omic <- omic %>%
+      dplyr::filter(HelixID %in% common.subjects$HelixID) %>%
+      dplyr::select(-c("SampleID"))
+    metadata <- metadata %>%
+      dplyr::filter(HelixID %in% common.subjects$HelixID) %>%
+      dplyr::rename(zBMI = hs_zbmi_theano) %>%
+      dplyr::select(-c("SampleID"))
+  } else {
+    exposome <- exposome[common.subjects, ] %>%
+      dplyr::select(-c("SampleID"))
+    omic <- omic[common.subjects, ] %>%
+      dplyr::select(-c("SampleID"))
+    metadata <- metadata[common.subjects, ] %>%
+      dplyr::rename(zBMI = hs_zbmi_theano) %>%
+      dplyr::select(-c("SampleID"))
+  }
   gc()
   
   dat <- list(
@@ -360,14 +394,23 @@ fit.ggm <- function(data, params) {
   data <- base::cbind(data$exposures, data$omics)
   
   ######################### Bootstrapping #########################
-  # Select selected biomarkers from merged network
+  # Filter selected biomarkers from merged network
+  nrow.old <- nrow(data)
   if (params$boot$perform) {
+    selected.biomarkers <- read.csv("data/merged_biomarkers_ggm.csv") %>%
+      .$name.ready
+    data <- as.data.frame(data) %>%
+      dplyr::select(dplyr::any_of(selected.biomarkers))
     
+    if (dim(data)[2] != length(selected.biomarkers)) {
+      stop(call. = TRUE)
+    }
+    if (nrow(data) != nrow.old) { stop(call. = TRUE) }
   }
+  gc()
   ##############################################################################
   
   base::saveRDS(object = data, file = "../data/dist_vars/data_matrix_processed")
-  gc()
   dim.data <- dim(data)[1]
   cat("\n##################################################\n")
   cat(paste0("Dimension of dataset: ", 

@@ -5,6 +5,285 @@ library(tidygraph)
 
 source("code/multivariate_analysis/dictionaries.R")
 
+##### Function for QQ plot of p-values from results EWAS
+qq.pval.ewas <- function(path) {
+  
+  ewas.t1 <- list.files(path = path, pattern = "^t1")
+  ewas.t2 <- list.files(path = path, pattern = "^t2")
+  ewas.t1.df <- list()
+  ewas.t2.df <- list()
+  for (idx in seq_along(ewas.t1)) {
+    df1 <- read.csv(file = paste0(path, ewas.t1[[idx]])) %>%
+      tibble::as_tibble() %>%
+      dplyr::mutate(fdr = p.adjust(p.value, "fdr")) %>%
+      dplyr::rowwise() %>%
+      dplyr::mutate(cpg = strsplit(cpg, split = "_me")[[1]][1])
+    df2 <- read.csv(file = paste0(path, ewas.t2[[idx]])) %>%
+      tibble::as_tibble() %>%
+      dplyr::mutate(fdr = p.adjust(p.value, "fdr")) %>%
+      dplyr::rowwise() %>%
+      dplyr::mutate(cpg = strsplit(cpg, split = "_me")[[1]][1])
+    mol <- ewas.t1[[idx]] %>% strsplit(., split = "\\.") %>% .[[1]] %>% .[2] %>%
+      strsplit(., split = "_") %>% .[[1]] %>% .[1]
+    ewas.t1.df[[mol]] <- df1
+    ewas.t2.df[[mol]] <- df2
+  } # End loop over files results EWAS
+  
+  # Helper function for QQ plot of p-values
+  # Largely copied from https://github.com/cran/QCEWAS/blob/master/R/script_v12-2_package.R
+  qq.plot <- function(pvals, mol, lambda) {
+    qq.expected <- sort(-log10(ppoints(length(pvals))))
+    qq.observed <- sort(-log10(pvals))
+    
+    qq.exp.min <- qq.expected[1]
+    qq.exp.max <- qq.expected[length(qq.expected)]
+    qq.obs.min <- qq.observed[1]
+    qq.obs.max <- qq.observed[length(qq.observed)]
+    
+    temp <- (1:length(pvals))
+    i1000 <- c(1, (1:1000) * floor(length(pvals) / 1000), length(pvals))
+    qq.band.upper <- sort(-log10(qbeta(1 - 0.05 / 2, temp, length(pvals) - temp + 1)))[i1000]
+    qq.band.lower <- sort(-log10(qbeta(0.05 / 2, temp, length(pvals) - temp + 1)))[i1000]
+    qq.expected.1000 <- qq.expected[i1000]
+    
+    ggplot2::ggplot() +
+      ggplot2::geom_point(mapping = aes(x = qq.expected, y = qq.observed)) +
+      ggplot2::geom_abline(colour = "red", show.legend = FALSE) +
+      ggplot2::coord_cartesian(xlim = c(0, qq.exp.max), 
+                               ylim = c(0, qq.obs.max)) +
+      ggplot2::geom_polygon(mapping = aes(
+        x = c(qq.expected.1000, rev(qq.expected.1000)), 
+        y = c(qq.band.upper, rev(qq.expected.1000)), 
+        alpha = 0.1
+      ), show.legend = FALSE) +
+      ggplot2::geom_polygon(mapping = aes(
+        x = c(qq.expected.1000, rev(qq.expected.1000)), 
+        y = c(qq.band.lower, rev(qq.expected.1000)), 
+        alpha = 0.1
+      ), show.legend = FALSE) +
+      ggplot2::theme_minimal() +
+      ggplot2::labs(x = "Expected -log10(p-value)", 
+                    y = "Observed -log10(p-value)", 
+                    title = toupper(mol), 
+                    subtitle = paste0("Lambda: ", round(lambda, 3)))
+  }
+  
+  # T1
+  list.qqplots <- list()
+  for (mol in names(ewas.t1.df)) {
+    lambda <- QCEWAS::P_lambda(ewas.t1.df[[mol]]$p.value)
+    plt <- qq.plot(pvals = ewas.t1.df[[mol]]$p.value, 
+                   mol = mol, lambda = lambda)
+    list.qqplots <- append(list.qqplots, list(plt))
+  }
+  a.grob <- gridExtra::arrangeGrob(grobs = list.qqplots, ncol = 2)
+  ggplot2::ggsave(filename = "qqplots_ewasT1.png", path = "results/images/", 
+                  height = 12, width = 12, plot = a.grob)
+  
+  # T2
+  list.qqplots <- list()
+  for (mol in names(ewas.t2.df)) {
+    lambda <- QCEWAS::P_lambda(ewas.t2.df[[mol]]$p.value)
+    plt <- qq.plot(pvals = ewas.t2.df[[mol]]$p.value, 
+                   mol = mol, lambda = lambda)
+    list.qqplots <- append(list.qqplots, list(plt))
+  }
+  a.grob <- gridExtra::arrangeGrob(grobs = list.qqplots, ncol = 2)
+  ggplot2::ggsave(filename = "qqplots_ewasT2.png", path = "results/images/", 
+                  height = 12, width = 12, plot = a.grob)
+  
+}
+
+##### Function to visualize common significant CpG sites by chemical
+visualize.common.cpgs <- function(path, threshold) {
+  ewas.t1 <- list.files(path = path, pattern = "^t1")
+  ewas.t2 <- list.files(path = path, pattern = "^t2")
+  
+  ewas.t1.df <- list()
+  ewas.t2.df <- list()
+  for (idx in seq_along(ewas.t1)) {
+    df1 <- read.csv(file = paste0(path, ewas.t1[[idx]])) %>%
+      tibble::as_tibble() %>%
+      dplyr::mutate(fdr = p.adjust(p.value, "fdr"))
+    df2 <- read.csv(file = paste0(path, ewas.t2[[idx]])) %>%
+      tibble::as_tibble() %>%
+      dplyr::mutate(fdr = p.adjust(p.value, "fdr"))
+    mol <- ewas.t1[[idx]] %>% strsplit(., split = "\\.") %>% .[[1]] %>% .[2] %>%
+      strsplit(., split = "_") %>% .[[1]] %>% .[1]
+    ewas.t1.df[[mol]] <- df1
+    ewas.t2.df[[mol]] <- df2
+  }
+  
+  list.venn.plts <- list()
+  for (mol in names(ewas.t1.df)) {
+    df1.signif <- ewas.t1.df[[mol]] %>%
+      dplyr::filter(fdr <= threshold)
+    df2.signif <- ewas.t2.df[[mol]] %>%
+      dplyr::filter(fdr <= threshold)
+    
+    if (nrow(df1.signif) > 0 & nrow(df2.signif) > 0) {
+      common.sites <- base::intersect(df1.signif$cpg, df2.signif$cpg)
+      dat <- list(
+        t1 = df1.signif$cpg, 
+        t2 = df2.signif$cpg
+      )
+      
+      venn <- ggVennDiagram::Venn(dat) %>% ggVennDiagram::process_data()
+      
+      venn.plt <- ggplot2::ggplot() +
+        ggplot2::geom_sf(aes(fill = count), data = venn@region, 
+                         show.legend = FALSE) +
+        ggplot2::geom_sf(aes(color = id), size = 1, color = "white", 
+                         data = venn@setEdge, 
+                         show.legend = FALSE) +
+        ggplot2::geom_sf_text(aes(label = name), data = venn@setLabel) +
+        ggplot2::geom_sf_label(aes(label = count), 
+                               family = "serif", size = 5, alpha = 0.5, 
+                               data = venn@region) +
+        ggplot2::theme_void() +
+        ggplot2::labs(title = paste0(toupper(mol), "\n", 
+                                     "Threshold FDR: ", threshold))
+      list.venn.plts[[mol]] <- venn.plt
+    } else {
+      common.sites <- "none"
+    }
+  } # End loop over molecules
+  
+  a.grob <- gridExtra::arrangeGrob(grobs = list.venn.plts, ncol = 2)
+  ggplot2::ggsave(filename = "venn_molsCpG.png", path = "results/images/", 
+                  height = 12, width = 12, plot = a.grob)
+}
+
+##### Function to load results bootstrapping merged networks and visualize intervals
+plot.bootstrapping.nets <- function(path) {
+  merged.nets <- list.files(path = path, 
+                            pattern = "merged_net")
+  
+  net.all <- list()
+  df.all <- list()
+  for (i in seq_along(merged.nets)) {
+    file.name <- merged.nets[[i]]
+    net <- unname(get(load(paste0(path, file.name)))) %>% .[[1]] %>% .$net
+    net.all[[i]] <- net
+    
+    node.attributes <- net %>% tidygraph::activate(., what = "nodes") %>%
+      tidygraph::as_tibble() %>% dplyr::mutate(idx = seq.int(nrow(.)))
+    edge.attributes <- net %>% tidygraph::activate(., what = "edges") %>%
+      tidygraph::as_tibble()
+    dim.old <- dim(edge.attributes)[1]
+    df <- dplyr::inner_join(node.attributes, edge.attributes, 
+                            by = c("idx" = "from"))
+    df <- dplyr::inner_join(node.attributes, df, 
+                            by = c("idx" = "to"))
+    df <- df %>%
+      dplyr::select(-c(group.x, idx, group.y, idx.y, type.x, type.y))
+    if (dim(df)[1] != dim(edge.attributes)[1]) { stop(call. = TRUE) }
+    df.all[[i]] <- df
+  }
+  
+  # Find merged network of bootstraps of merged networks
+  df.1 <- purrr::reduce(df.all, dplyr::inner_join, 
+                        by = c("name.x", "name.y", 
+                               "label.x", "label.y", 
+                               "direction"))
+  df.2 <- purrr::reduce(df.all, dplyr::inner_join, 
+                        by = c("name.x" = "name.y", "name.y" = "name.x", 
+                               "label.x" = "label.y", "label.y" = "label.x", 
+                               "direction"))
+  df <- dplyr::bind_rows(df.1, df.2)
+  
+  metrics <- c("pcor.x", "pval.x", "qval.x", "pcor.y", "pval.y", "qval.y")
+  res.summaries <- list()
+  for (met in metrics) {
+    df.tmp <- df %>%
+      dplyr::select(c(name.x, name.y, label.x, label.y, 
+                      tidyselect::starts_with(met))) %>%
+      t() %>% as.data.frame() %>%
+      tibble::rownames_to_column(var = "var") %>%
+      tibble::as_tibble()
+    summ <- psych::describe(df.tmp[5:nrow(df.tmp), 2:ncol(df.tmp)] %>%
+                              dplyr::mutate_all(as.numeric)) %>%
+      data.frame() %>%
+      dplyr::select(c(mean, sd, median, min, max, range)) %>%
+      t() %>% as.data.frame() %>%
+      tibble::rownames_to_column(var = "var") %>%
+      dplyr::mutate(var = paste0(var, "_", met))
+    res.summaries <- append(res.summaries, 
+                            list(rbind(df.tmp[1:4, ], summ)))
+  }
+  # Tibble where each column is an edge and each row (from the 5th) is
+  # as numeric summary (e.g., mean, sd, ...)
+  res.summaries <- dplyr::bind_rows(res.summaries) %>%
+    dplyr::distinct()
+  colnames(res.summaries) <- c("variable", paste0("E", 
+                                                  1:(ncol(res.summaries)-1)))
+  
+  # Plot distribution of metrics of interest
+  metrics <- c("pcor.x", "pcor.y")
+  all.plots <- list(pcor.x = list(), pcor.y = list())
+  for (metric in metrics) {
+    df.tmp <- df %>%
+      dplyr::select(c(name.x, name.y, 
+                      tidyselect::starts_with(metric)))
+    for (idx in 1:nrow(df.tmp)) {
+      lab <- paste0(df.tmp[idx, 1], "-", df.tmp[idx, 2])
+      plt <- df.tmp[idx, 3:ncol(df.tmp)] %>%
+        c() %>% unname() %>% unlist() %>%
+        as.data.frame() %>%
+        ggplot2::ggplot() +
+        ggplot2::geom_density(mapping = aes(x = `.`)) +
+        ggplot2::geom_vline(mapping = aes(xintercept = median(`.`), 
+                                          color = "median"), 
+                            show.legend = TRUE) +
+        ggplot2::labs(title = paste0(lab, "\n", 
+                                     metric)) +
+        ggplot2::theme_minimal() +
+        ggplot2::scale_color_manual(name = "statistics", 
+                                    values = c(median = "red")) +
+        ggplot2::theme(axis.title.x = element_blank(), 
+                       plot.title = element_text(size = 10))
+      all.plots[[metric]] <- append(all.plots[[metric]], 
+                                    list(plt))
+    }
+  }
+  path.save <- "results/images/"
+  grid.t1 <- gridExtra::grid.arrange(grobs = all.plots$pcor.x %>% unname(), ncol = 2, 
+                                     nrow = length(all.plots$pcor.x) / 2)
+  ggplot2::ggsave(filename = paste0(path.save, "pcor_t1_boot.pdf"), 
+                  plot = grid.t1, 
+                  dpi = 720/2, 
+                  width = 7, height = 15)
+  grid.t2 <- gridExtra::grid.arrange(grobs = all.plots$pcor.y %>% unname(), ncol = 2, 
+                                     nrow = length(all.plots$pcor.x) / 2)
+  ggplot2::ggsave(filename = paste0(path.save, "pcor_t2_boot.pdf"), 
+                  plot = grid.t2, 
+                  dpi = 720/2, 
+                  width = 7, height = 15)
+  
+  # Compute statistics from bootstrapped merged networks
+  df.props <- list()
+  for (i in seq_along(net.all)) {
+    net <- net.all[[i]]
+    num.edges <- igraph::ecount(net)
+    num.nodes <- igraph::vcount(net)
+    num.components <- igraph::components(net)$no
+    net.density <- igraph::graph.density(net)
+    
+    df.props[[i]] <- tibble::tibble(
+      iteration = i, 
+      num.edges = num.edges, num.nodes = num.nodes, 
+      num.components = num.components, 
+      net.density = net.density
+      )
+  }
+  df.props.table <- reduce(df.props, dplyr::bind_rows) %>%
+    gtsummary::tbl_summary() %>%
+    gtsummary::bold_labels() %>%
+    gtsummary::as_gt() %>% gt::gtsave(., 
+                                      filename = "results/images/boot_desc.png", 
+                                      zoom = 4, expand = 7)
+}
+
 ##### Function to plot change in networks' metrics by time point
 plot.change.time.metrics <- function(path.res, metrics) {
   load("../data/intermediate_res_ggm/processed_ggms.RData")
