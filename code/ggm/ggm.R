@@ -146,7 +146,7 @@ perform.analysis <- function(params) {
     ## We are using data from the new HPC cluster
     
     # Filtered CG sites
-    filtered.cgs <- readr::read_csv("data/cpgs_ewaffXXX_common.csv", 
+    filtered.cgs <- readr::read_csv("data/cpgs_ewaffSVA_common.csv", 
                                     col_names = TRUE, 
                                     col_types = cols()) %>%
       as.list() %>% .$value
@@ -158,7 +158,7 @@ perform.analysis <- function(params) {
     if (params$boot$perform) {
       # Load only selected CpG sites for bootstrapping
       selected.biomarkers <- read.csv("data/merged_biomarkers_ggm.csv") %>%
-        .$name.ready
+        tibble::as_tibble()
       cpg.sites <- selected.biomarkers %>%
         dplyr::filter(label == "methylome") %>%
         dplyr::rowwise() %>%
@@ -190,8 +190,12 @@ perform.analysis <- function(params) {
     # Filter CpG sites
     samples <- meth %>% dplyr::select(c(SampleID, HelixID))
     meth <- meth %>%
-      dplyr::select(-c(SampleID, HelixID)) %>%
-      dplyr::select(tidyselect::all_of(filtered.cgs)) %>%
+      dplyr::select(-c(SampleID, HelixID))
+    if (!params$boot$perform) {
+      meth <- meth %>%
+      dplyr::select(tidyselect::all_of(filtered.cgs))
+    }
+    meth <- meth %>%
       minfi::logit2(.) %>%
       dplyr::bind_cols(samples)
     gc()
@@ -314,12 +318,14 @@ perform.analysis <- function(params) {
     omics     = omic, 
     metadata  = metadata
   )
-  base::saveRDS(object = dat$exposures, 
-                file = "../data/dist_vars/exposures_raw")
-  base::saveRDS(object = dat$omics, 
-                file = "../data/dist_vars/omics_raw")
-  base::saveRDS(object = dat$metadata, 
-                file = "../data/dist_vars/metadata_raw")
+  if (!params$boot$perform) {
+    base::saveRDS(object = dat$exposures, 
+                  file = "../data/dist_vars/exposures_raw")
+    base::saveRDS(object = dat$omics, 
+                  file = "../data/dist_vars/omics_raw")
+    base::saveRDS(object = dat$metadata, 
+                  file = "../data/dist_vars/metadata_raw")
+  }
   
   # Run main analysis
   ggm.fitted <- fit.ggm(data = dat, params = params)
@@ -353,7 +359,7 @@ fit.ggm <- function(data, params) {
   }
   # Stratification by outcome
   if (params$stratify.by.outcome) {
-    stop()
+    stop(call. = TRUE)
   }
   
   # Adjust for covariates
@@ -402,15 +408,15 @@ fit.ggm <- function(data, params) {
     data <- as.data.frame(data) %>%
       dplyr::select(dplyr::any_of(selected.biomarkers))
     
-    if (dim(data)[2] != length(selected.biomarkers)) {
-      stop(call. = TRUE)
-    }
+    if (dim(data)[2] != length(selected.biomarkers)) { stop(call. = TRUE) }
     if (nrow(data) != nrow.old) { stop(call. = TRUE) }
   }
   gc()
   ##############################################################################
   
-  base::saveRDS(object = data, file = "../data/dist_vars/data_matrix_processed")
+  if (!params$boot$perform) {
+    base::saveRDS(object = data, file = "../data/dist_vars/data_matrix_processed")
+  }
   dim.data <- dim(data)[1]
   cat("\n##################################################\n")
   cat(paste0("Dimension of dataset: ", 
@@ -582,7 +588,6 @@ process.ggms <- function(list.ggms, active,
       dplyr::mutate(node1 = labels.rows[node1]) %>%
       dplyr::mutate(node2 = labels.columns[node2])
     gc()
-    
     base::saveRDS(object = df.significance, 
                   file = paste0("../data/correlations/network_raw_", 
                                 cor.res))

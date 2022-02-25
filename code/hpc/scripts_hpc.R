@@ -5,8 +5,15 @@ run_analysis <- function(choice, key.save.results) {
   source("code/ggm/ggm.R")
   
   ##### Parameters GGMs #####
+  if (choice == "ggm") {
+    path.save.res <- file.path(paste0("results/ggm/", key.save.results, "/"))
+  } else {
+    # Bootstrapping
+    path.save.res <- file.path(paste0("results/ggm/", key.save.results, 
+                                      "_boot/"))
+  }
   active <- "corpcor"
-  num.iters.boot <- 20
+  num.iters.boot <- 50
   params <- list(
     method.ggm = "prob", 
     cutoff.ggm = 0.8, 
@@ -16,7 +23,6 @@ run_analysis <- function(choice, key.save.results) {
   ##############################################################################
   
   if (choice == "ggm") {
-    path.save.res <- file.path(paste0("results/ggm/", key.save.results, "/"))
     if (!dir.exists(path.save.res)) {
       dir.create(path = path.save.res)
     }
@@ -24,7 +30,7 @@ run_analysis <- function(choice, key.save.results) {
     ##### Pipeline #####
     ggms <- main.pipeline.ggm(params = list(
       omic.type = c("metabun", "metab_blood", "proteome", "methylome"), 
-      package.corr = active, is.hpc = FALSE, 
+      package.corr = active, is.hpc = TRUE, 
       key.save = key.save.results, 
       boot = list(
         perform = FALSE
@@ -85,21 +91,22 @@ run_analysis <- function(choice, key.save.results) {
     ############################################################################
     
   } else if(choice == "ggm.boot") { # Bootstrapping
-    path.save.res <- file.path(paste0("results/ggm/", key.save.results, 
-                                      "_boot/"))
     if (!dir.exists(path.save.res)) {
       dir.create(path = path.save.res)
     }
     
     for (itr in 1:num.iters.boot) {
-      cat(paste0("Bootstrapping. Iteration: ", itr, "...\n"))
+      cat("\n####################################################")
+      cat(paste0("\nBootstrapping. Iteration: ", itr, "...\n\n"))
+      cat("####################################################\n")
       
       ggms <- main.pipeline.ggm(params = list(
         omic.type = c("metabun", "metab_blood", "proteome", "methylome"), 
-        package.corr = active, is.hpc = FALSE, 
+        package.corr = active, is.hpc = TRUE, 
         key.save = key.save.results, 
         boot = list(
-          perform = TRUE
+          perform = TRUE, 
+          seed = itr
         )
       ))
       processed.ggms <- process.ggms(list.ggms = ggms, active = active, 
@@ -116,12 +123,48 @@ run_analysis <- function(choice, key.save.results) {
                  file = paste0(path.save.res, "merged_net", itr, ".RData"))
       rm(processed.ggms)
       gc()
-    } # End loop bootstrapping
-    
-  } # End choice bootstrapping
+    } # End loop iterations
+    # End if bootstrapping
+    ##########################################################################
+      
+    } else if (choice == "ggm.boot.par") {
+      if (!dir.exists(path.save.res)) {
+        dir.create(path = path.save.res)
+      }
+      
+      ret <- bettermc::mclapply(1:num.iters.boot, function(itr) {
+        
+        ggms <- main.pipeline.ggm(params = list(
+          omic.type = c("metabun", "metab_blood", "proteome", "methylome"), 
+          package.corr = active, is.hpc = TRUE, 
+          key.save = key.save.results, 
+          boot = list(
+            perform = TRUE, 
+            seed = itr
+          )
+        ))
+        processed.ggms <- process.ggms(list.ggms = ggms, active = active, 
+                                       filter.mixed.interactions = FALSE, 
+                                       is.directed = FALSE, 
+                                       params = params)
+        rm(ggms)
+        gc()
+        res <- merge.networks(ggms = processed.ggms, exposure.group = 5, 
+                              how.to.join = "inner", 
+                              type.networks = "ggm", 
+                              path.save = path.save.res)
+        base::save(res, 
+                   file = paste0(path.save.res, "merged_net", itr, ".RData"))
+        rm(processed.ggms)
+        gc()
+      }, mc.cores = 2)
+      
+      # End if parallel bootstrapping
+      ##########################################################################
+    }
   
 } # End function run analyses HPC
 
 setwd("/PROJECTES/HELIX/lorenzoF/paper-helix-multiOmics/")
 options(device = NULL)
-run_analysis(choice = "ggm", key.save.results = "debug")
+run_analysis(choice = "ggm.boot", key.save.results = "debug")

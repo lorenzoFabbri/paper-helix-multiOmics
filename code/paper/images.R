@@ -32,6 +32,11 @@ qq.pval.ewas <- function(path) {
   # Helper function for QQ plot of p-values
   # Largely copied from https://github.com/cran/QCEWAS/blob/master/R/script_v12-2_package.R
   qq.plot <- function(pvals, mol, lambda) {
+    which.na <- which(is.na(pvals))
+    if (length(which.na) > 0) {
+      pvals <- na.omit(pvals)
+    }
+    
     qq.expected <- sort(-log10(ppoints(length(pvals))))
     qq.observed <- sort(-log10(pvals))
     
@@ -78,7 +83,7 @@ qq.pval.ewas <- function(path) {
   }
   a.grob <- gridExtra::arrangeGrob(grobs = list.qqplots, ncol = 2)
   ggplot2::ggsave(filename = "qqplots_ewasT1.png", path = "results/images/", 
-                  height = 12, width = 12, plot = a.grob)
+                  height = 20, width = 12, plot = a.grob)
   
   # T2
   list.qqplots <- list()
@@ -90,7 +95,7 @@ qq.pval.ewas <- function(path) {
   }
   a.grob <- gridExtra::arrangeGrob(grobs = list.qqplots, ncol = 2)
   ggplot2::ggsave(filename = "qqplots_ewasT2.png", path = "results/images/", 
-                  height = 12, width = 12, plot = a.grob)
+                  height = 20, width = 12, plot = a.grob)
   
 }
 
@@ -151,7 +156,7 @@ visualize.common.cpgs <- function(path, threshold) {
   
   a.grob <- gridExtra::arrangeGrob(grobs = list.venn.plts, ncol = 2)
   ggplot2::ggsave(filename = "venn_molsCpG.png", path = "results/images/", 
-                  height = 12, width = 12, plot = a.grob)
+                  height = 16, width = 12, plot = a.grob)
 }
 
 ##### Function to load results bootstrapping merged networks and visualize intervals
@@ -180,6 +185,38 @@ plot.bootstrapping.nets <- function(path) {
     if (dim(df)[1] != dim(edge.attributes)[1]) { stop(call. = TRUE) }
     df.all[[i]] <- df
   }
+  
+  # Compute the number of reproducible edges as a function of the
+  # number of iterations
+  reproducible.edges <- c()
+  for (i in seq_along(df.all)) {
+    nets <- df.all[1:i]
+    df.1 <- purrr::reduce(nets, dplyr::inner_join, 
+                          by = c("name.x", "name.y", 
+                                 "label.x", "label.y", 
+                                 "direction"))
+    df.2 <- purrr::reduce(nets, dplyr::inner_join, 
+                          by = c("name.x" = "name.y", "name.y" = "name.x", 
+                                 "label.x" = "label.y", "label.y" = "label.x", 
+                                 "direction"))
+    df <- dplyr::bind_rows(df.1, df.2)
+    
+    reproducible.edges <- append(reproducible.edges, nrow(df))
+  }
+  plt <- reproducible.edges %>%
+    as.data.frame() %>%
+    `colnames<-`(c("num.edges")) %>%
+    dplyr::mutate(iteration = dplyr::row_number()) %>%
+    ggplot2::ggplot() +
+    ggplot2::geom_point(mapping = aes(x = iteration, 
+                                      y = num.edges)) +
+    ggplot2::labs(x = "bootstrap iteration", 
+                  y = "number of reproducible edges")
+  ggplot2::ggsave(filename = paste0(path.save, "repEdges_byIter.pdf"), 
+                  plot = plt, 
+                  dpi = 720/2, 
+                  width = 7, height = 15)
+  ##############################################################################
   
   # Find merged network of bootstraps of merged networks
   df.1 <- purrr::reduce(df.all, dplyr::inner_join, 
@@ -248,13 +285,13 @@ plot.bootstrapping.nets <- function(path) {
   }
   path.save <- "results/images/"
   grid.t1 <- gridExtra::grid.arrange(grobs = all.plots$pcor.x %>% unname(), ncol = 2, 
-                                     nrow = length(all.plots$pcor.x) / 2)
+                                     nrow = ceiling(length(all.plots$pcor.x) / 2))
   ggplot2::ggsave(filename = paste0(path.save, "pcor_t1_boot.pdf"), 
                   plot = grid.t1, 
                   dpi = 720/2, 
                   width = 7, height = 15)
   grid.t2 <- gridExtra::grid.arrange(grobs = all.plots$pcor.y %>% unname(), ncol = 2, 
-                                     nrow = length(all.plots$pcor.x) / 2)
+                                     nrow = ceiling(length(all.plots$pcor.y) / 2))
   ggplot2::ggsave(filename = paste0(path.save, "pcor_t2_boot.pdf"), 
                   plot = grid.t2, 
                   dpi = 720/2, 
@@ -277,7 +314,7 @@ plot.bootstrapping.nets <- function(path) {
       )
   }
   df.props.table <- reduce(df.props, dplyr::bind_rows) %>%
-    gtsummary::tbl_summary() %>%
+    gtsummary::tbl_summary(include = -c("iteration")) %>%
     gtsummary::bold_labels() %>%
     gtsummary::as_gt() %>% gt::gtsave(., 
                                       filename = "results/images/boot_desc.png", 
@@ -330,6 +367,60 @@ internal.plotCorr <- function(data, data.feats, save.key) {
   ggplot2::ggsave(paste0(path.save, save.key, ".png"), 
                   dpi = 720/2, 
                   width = 20, height = 12)
+}
+
+##### Function to plot correlation exposures between time points
+plot.cor.exp.time <- function() {
+  path.meta <- "data/"
+  path.data <- "../data/"
+  path.save <- "results/images/"
+  
+  exposome1 <- readRDS(file = paste0(path.data, "exposome_1A")) %>%
+    .$data %>% tibble::as_tibble() %>%
+    dplyr::select(-c(SampleID))
+  colnames(exposome1) <- colnames(exposome1) %>%
+    lapply(., function(x) {
+      strsplit(x, "log.") %>% .[[1]] %>% .[2] %>%
+        strsplit(., "_") %>% .[[1]] %>% .[1] %>%
+        toupper(.)
+    })
+  exposome2 <- readRDS(file = paste0(path.data, "exposome_1B")) %>%
+    .$data %>% tibble::as_tibble() %>%
+    dplyr::select(-c(SampleID))
+  colnames(exposome2) <- colnames(exposome2) %>%
+    lapply(., function(x) {
+      strsplit(x, "log.") %>% .[[1]] %>% .[2] %>%
+        strsplit(., "_") %>% .[[1]] %>% .[1] %>%
+        toupper(.)
+    })
+  
+  all.exposures <- dict.exposure.groups() %>%
+    stack() %>% tibble::as_tibble() %>%
+    `colnames<-`(c("exposure", "class")) %>%
+    dplyr::mutate(class = as.character(class)) %>%
+    dplyr::mutate(class = substr(class, 1, nchar(class) - 1)) %>%
+    dplyr::mutate(exposure = toupper(exposure))
+  exposome1 <- exposome1[all.exposures$exposure]
+  exposome2 <- exposome2[all.exposures$exposure]
+  
+  cols.exp <- map.char.to.aes()[2][[1]] %>% as.data.frame() %>%
+    tibble::rownames_to_column() %>%
+    tibble::as_tibble() %>%
+    `colnames<-`(c("class", "color"))
+  all.exposures <- all.exposures %>%
+    dplyr::inner_join(cols.exp)
+  
+  plt <- cor(exposome1 %>% scale(), exposome2 %>% scale()) %>%
+    ggcorrplot::ggcorrplot(lab = TRUE, type = "upper", show.diag = TRUE, 
+                           legend.title = "cor") +
+    ggplot2::theme(axis.text.x = element_text(colour = all.exposures$color), 
+                   axis.text.y = element_text(colour = all.exposures$color), 
+                   axis.title.x = element_text(angle = 0, color = "grey20"), 
+                   axis.title.y = element_text(angle = 0, color = "grey20")) +
+    ggplot2::labs(x = "t1", y = "t2")
+  ggplot2::ggsave(paste0(path.save, "corrPlot_exps", time.point, ".png"), 
+                  dpi = 720/2, 
+                  width = 20, height = 12, plot = plt)
 }
 
 ##### Function to plot heatmaps of chemicals and -omics w/ additional info
@@ -509,8 +600,8 @@ net.properties <- function(list.net.dfs, is.merged, how.to.join,
                                 pcor, pval, qval, direction))
     } else {
       if (how.to.join == "inner") {
-        colnames(df) <- c("from", "type.x", "idx.x", 
-                          "to", "type.y", "idx.y", 
+        colnames(df) <- c("from", "type.x", "group.x", "idx.x", 
+                          "to", "type.y", "group.y", "idx.y", 
                           "type.x.2", "type.y.2", 
                           "pcor.x", "pval.x", "qval.x", 
                           "direction", 
@@ -519,8 +610,6 @@ net.properties <- function(list.net.dfs, is.merged, how.to.join,
                                   pcor.x, pcor.y, 
                                   pval.x, pval.y, 
                                   qval.x, qval.y, direction))
-        return(df)
-        stop()
       } else {
         colnames(df) <- c("from", "type.x", "idx.x", "to", "type.y", 
                           "idx.y", "type.x.2", "type.y.2", 
@@ -549,17 +638,3 @@ net.properties <- function(list.net.dfs, is.merged, how.to.join,
   
   return(properties)
 } # End function compute properties networks
-
-# properties.time.specific <- net.properties(list.net.dfs = list(
-#   "visit A" = clean.net(path.corr = "../data/correlations/pcorr_mat_raw", 
-#                         type.net = "time", key.save = "tmpA"), 
-#   "visit B" = clean.net(path.corr = "../data/correlations/pcorr_mat_raw", 
-#                         type.net = "time", key.save = "tmpB")
-# ), is.merged = FALSE, how.to.join = "inner", 
-# path.save = "results/images/", key.save = "time")
-
-# properties.time.specific <- net.properties(list.net.dfs = list(
-#   "merged" = clean.net(path.corr = "../data/correlations/merged_net", 
-#                        type.net = "time", key.save = "tmp")
-# ), is.merged = TRUE, how.to.join = "inner", 
-# path.save = "results/images/", key.save = "merged")
