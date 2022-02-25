@@ -13,7 +13,7 @@ run_analysis <- function(choice, key.save.results) {
                                       "_boot/"))
   }
   active <- "corpcor"
-  num.iters.boot <- 50
+  num.iters.boot <- 100
   params <- list(
     method.ggm = "prob", 
     cutoff.ggm = 0.8, 
@@ -37,7 +37,6 @@ run_analysis <- function(choice, key.save.results) {
       )
     ))
     base::save(ggms, file = "../data/intermediate_res_ggm/ggms.RData")
-    cat("Processing models...\n")
     processed.ggms <- process.ggms(list.ggms = ggms, active = active, 
                                    filter.mixed.interactions = FALSE, 
                                    is.directed = FALSE, 
@@ -47,7 +46,6 @@ run_analysis <- function(choice, key.save.results) {
     is.stratified <- ggms[[names(ggms)[1]]]$params$stratification
     rm(ggms)
     gc()
-    cat("Computing network properties...\n")
     net.props <- net.properties(ggms = processed.ggms, type.networks = "ggm", 
                                 path.save = path.save.res, is.merged = FALSE)
     if (is.stratified) {
@@ -56,7 +54,6 @@ run_analysis <- function(choice, key.save.results) {
                               how.to.join = how.to.join)
       }
     } else {
-      cat("Merging networks...\n")
       res <- merge.networks(ggms = processed.ggms, exposure.group = 5, 
                             how.to.join = "inner", 
                             type.networks = "ggm", 
@@ -77,7 +74,6 @@ run_analysis <- function(choice, key.save.results) {
     }
     base::save(res, 
                file = "../data/intermediate_res_ggm/merged_net.RData")
-    cat("Computing network properties...\n")
     rm(processed.ggms)
     gc()
     net.merged.props <- net.properties(ggms = res, type.networks = "ggm", 
@@ -85,7 +81,6 @@ run_analysis <- function(choice, key.save.results) {
                                        is.merged = TRUE, how.to.join = "inner")
     gc()
     
-    cat("Analysing connected components...\n")
     analyse.cc(res$mod_2.2.2.5.5$net, path.save = path.save.res)
     # End if GGMs
     ############################################################################
@@ -97,7 +92,7 @@ run_analysis <- function(choice, key.save.results) {
     
     for (itr in 1:num.iters.boot) {
       cat("\n####################################################")
-      cat(paste0("\nBootstrapping. Iteration: ", itr, "...\n\n"))
+      cat(paste0("\nBootstrapping. Iteration: ", itr, "...\n"))
       cat("####################################################\n")
       
       ggms <- main.pipeline.ggm(params = list(
@@ -128,12 +123,13 @@ run_analysis <- function(choice, key.save.results) {
     ##########################################################################
       
     } else if (choice == "ggm.boot.par") {
+      # It does not work
+      stop(call. = TRUE)
       if (!dir.exists(path.save.res)) {
         dir.create(path = path.save.res)
       }
       
       ret <- bettermc::mclapply(1:num.iters.boot, function(itr) {
-        
         ggms <- main.pipeline.ggm(params = list(
           omic.type = c("metabun", "metab_blood", "proteome", "methylome"), 
           package.corr = active, is.hpc = TRUE, 
@@ -167,4 +163,4 @@ run_analysis <- function(choice, key.save.results) {
 
 setwd("/PROJECTES/HELIX/lorenzoF/paper-helix-multiOmics/")
 options(device = NULL)
-run_analysis(choice = "ggm.boot", key.save.results = "debug")
+run_analysis(choice = "ggm", key.save.results = "paper")

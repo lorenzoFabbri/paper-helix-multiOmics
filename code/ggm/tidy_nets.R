@@ -1,16 +1,13 @@
+# Messy code to generate high-quality figures of the merged network
+# and the various connected components
+
 library(tidyverse)
 library(igraph)
 library(RColorBrewer)
 
-rm(list = ls())
-gc()
-
 source("code/multivariate_analysis/dictionaries.R")
 
-# If we try to use `group_leading_eigen` on the full merged network,
-# we usually get an error since the algorithm does not converge, even if
-# we increase the maximum number of iterations. An option is to perform this
-# step on each connected component separately
+################################################################################
 load("../data/intermediate_res_ggm/merged_net.RData")
 net <- res$mod_2.2.2.5.5$net
 num.ccs <- range(net %>% dplyr::as_tibble() %>% .$group)[2]
@@ -40,16 +37,11 @@ net.nodes <- net %>% tidygraph::activate(., what = "nodes") %>%
   tidygraph::as_tibble() %>% dplyr::mutate(idx = seq.int(nrow(.))) %>%
   dplyr::mutate(label = as.character(label)) %>%
   dplyr::rowwise() %>%
-  # dplyr::mutate(class = ifelse(
-  #   label == "serum metabolome", metabs[metabs$Rvar == name, ]$Class, 
-  #   "node"
-  # ))
   dplyr::mutate(class = ifelse(
     label == "exposure", all.exposures[all.exposures$exposure == name, ]$class, 
     ifelse(
       label == "serum metabolome", metabs[metabs$Rvar == name, ]$Class, 
       ifelse(
-        # prot[prot$Prot_ID == name, ][["Gene_Symbol"]]
         label == "proteome", "none", 
         "none"
       )
@@ -57,7 +49,7 @@ net.nodes <- net %>% tidygraph::activate(., what = "nodes") %>%
   ))
 #####
 
-# Database EWAS results
+##### Database EWAS results
 atlas <- data.table::fread("../data/methylome/results.txt")
 
 path.res <- "results/focus_merged_ccs"
@@ -68,10 +60,9 @@ file.remove(f)
 map.label.to.shape <- map.char.to.aes()[[1]]
 map.class.to.col <- map.char.to.aes()[[2]]
 
-# Iterate over connected components of merged network
+##### Iterate over connected components of merged network
 for (i in 1:num.ccs) {
   to.filter <- i
-  cat(paste0("Processing connected component: ", to.filter, "\n"))
   
   load("../data/intermediate_res_ggm/merged_net.RData")
   net <- res$mod_2.2.2.5.5$net %>%
@@ -108,6 +99,7 @@ for (i in 1:num.ccs) {
     net.module <- net %>% tidygraph::filter(gle == module) %>%
       tidygraph::mutate(gle.inner = as.factor(tidygraph::group_leading_eigen(options = list(maxiter = 10000))))
     
+    # Tidy plot of module within current connected component
     gg.inner <- ggraph::ggraph(net.module, layout = "fr") +
       ggforce::geom_mark_hull(mapping = aes(x = x, y = y, 
                                             fill = class, 
@@ -138,7 +130,7 @@ for (i in 1:num.ccs) {
                            "mod_", module , ".pdf"), 
                     dpi = 720/2, 
                     width = 20, height = 12)
-  }
+  } # End loop over modules within current connected component
   
   # Save to file to use with Cytoscape
   ig <- tidygraph::as.igraph(net)
@@ -146,6 +138,7 @@ for (i in 1:num.ccs) {
     write.csv(., paste0(path.res.tmp, "/ig_", to.filter, ".csv"), 
               row.names = FALSE, quote = FALSE)
   
+  # Tidy plot of current connected component
   gg <- ggraph::ggraph(net, layout = "fr") +
     ggforce::geom_mark_hull(mapping = aes(x = x, y = y, 
                                           fill = class, 
@@ -176,6 +169,7 @@ for (i in 1:num.ccs) {
                   dpi = 720/2, 
                   width = 20, height = 12)
   
+  # Find gene(s) associated to each CpG site
   cpgs <- net %>% dplyr::filter(label == "methylome") %>%
     as_tibble() %>% dplyr::select(name) %>% .$name %>% c()
   if (length(cpgs) > 0) {
@@ -191,4 +185,4 @@ for (i in 1:num.ccs) {
                   row.names = FALSE, quote = FALSE)
     }
   }
-}
+} # End loop over connected components of merged network

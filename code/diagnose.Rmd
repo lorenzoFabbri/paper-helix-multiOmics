@@ -12,7 +12,7 @@ knitr::opts_knit$set(root.dir = '/home/lorenzo/mounts/PROJECTES/HELIX/lorenzoF/p
 knitr::opts_chunk$set(echo = TRUE, rows.print = 300)
 ```
 
-# What the fuck is going on with the data
+# Re-preprocessing of the raw data
 
 ```{r}
 rm(list = ls())
@@ -82,6 +82,7 @@ library(VIM)
 explore.data <- function(dat, params) {
   
   if (params$type == "e") {
+    # Exposures
     exposome <- dat
     feature.data <- NULL
     
@@ -119,6 +120,7 @@ explore.data <- function(dat, params) {
     ) # End `if` for exposome
     
   } else if (params$type %in% c("p", "ms", "mu")) {
+    # Proteome, serume metabolome or urinary metabolome, respectively
     omics <- Biobase::exprs(dat) %>% t(.) %>% tibble::as_tibble()
     pheno.data <- Biobase::pData(dat) %>% tibble::as_tibble()
     feature.data <- Biobase::fData(dat) %>% tibble::as_tibble()
@@ -154,11 +156,6 @@ explore.data <- function(dat, params) {
   
   # Save dataset in server directory for paper
   if (params$save == TRUE) {
-    # Save in old server
-    #path.dir <- '/run/user/1000/gvfs/smb-share:server=fs01.isglobal.lan,share=data/ws_helix/HELIX_analyses/HELIX_Panel_Nonpersistent_multi-omics/'
-    #path.dir <- paste0(path.dir, "data/", params$file.name)
-    #saveRDS(object = ret, file = path.dir)
-    
     # Save in HPC cluster
     path.dir <- '../data/'
     path.dir <- paste0(path.dir, params$file.name)
@@ -168,7 +165,7 @@ explore.data <- function(dat, params) {
   return(ret)
 }
 
-time.point <- "_1A"
+time.point <- "_1A" # First visit
 to.save <- TRUE
 
 exposome.clean <- explore.data(exposome, params = list(
@@ -219,7 +216,7 @@ saveRDS(object = metu.clean, file = paste0('../data/metabUrine', time.point))
 
 #===============================================================================
   
-time.point <- "_1B"
+time.point <- "_1B" # Second visit
 
 exposome.clean2 <- explore.data(exposome, params = list(
   type = "e", 
@@ -276,6 +273,7 @@ data.all.1 <- list(exposome.clean, prot.clean,
 data.all.2 <- list(exposome.clean2, prot.clean2, 
                    metu.clean2, mets.clean2, meth.clean2)
 
+# Metadata from the different datasets
 meta.all.1 <- list()
 for (d in data.all.1) {
   meta.all.1 <- append(meta.all.1, list(d$pheno.data))
@@ -286,9 +284,10 @@ for (d in data.all.2) {
   meta.all.2 <- append(meta.all.2, list(d$pheno.data))
 }
 
-meta.1 <- purrr::discard(meta.all.1, is.null) %>% purrr::reduce(dplyr::inner_join, by = "SampleID")
-
-meta.2 <- purrr::discard(meta.all.2, is.null) %>% purrr::reduce(dplyr::inner_join, by = "SampleID")
+meta.1 <- purrr::discard(meta.all.1, is.null) %>% purrr::reduce(dplyr::inner_join, 
+                                                                by = "SampleID")
+meta.2 <- purrr::discard(meta.all.2, is.null) %>% purrr::reduce(dplyr::inner_join, 
+                                                                by = "SampleID")
 
 # These *should be* the common samples across time points and data types
 common.samples.time <- intersect(meta.1$SampleID %>%
@@ -327,7 +326,8 @@ readr::write_csv(common.samples.time %>% tibble::as_tibble() %>%
                    `colnames<-`(c("SampleID")), 
                  file = "data/common_samples.csv", col_names = TRUE)
 
-# Common subjects by time point separately
+# Common subjects by time point separately (since we are adjusting models
+# also for "season")
 common.samples.t1 <- intersect(meta.1$SampleID, season.t1$SampleID) %>%
   tibble::as_tibble() %>% `colnames<-`(c("SampleID")) %>%
   dplyr::rowwise() %>%

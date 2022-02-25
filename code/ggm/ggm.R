@@ -8,31 +8,19 @@ source("./code/multivariate_analysis/dictionaries.R")
 library(readr)
 library(dplyr)
 library(purrr)
-#library(correlation)
 library(ggraph)
-#library(see)
 library(tibble)
 library(tidygraph)
 library(parallel)
 library(corpcor)
 library(GeneNet)
-#library(GLASSOO)
 library(Matrix)
 library(qgraph)
-#library(bootnet)
-#library(RCy3)
-#library(fdrtool)
 library(gtsummary)
 library(tidyselect)
 library(data.table)
-#library(huge)
 library(fastDummies)
-#library(janitor)
-#library(safejoin)
 library(sqldf)
-#library(dbplyr)
-#library(xtable)
-#library(MetaboAnalystR)
 
 #####################################################
 ##### Function performing main pipeline for GMM #####
@@ -74,7 +62,6 @@ main.pipeline.ggm <- function(params) {
   scale.new <- list(perform = TRUE, group = "none", 
                     method = "autoscale")
   plotting <- list(perform = FALSE, save = TRUE)
-  #path.save <- "./results/gmm/models/"
   validate <- FALSE
   is.hpc <- params$is.hpc
   
@@ -153,7 +140,6 @@ perform.analysis <- function(params) {
     
     path.data.methylome <- "../data/methylome/"
     name.methylome <- "methylome_panel_ComBatSlide_6cells_v4.csv"
-    cat("\nLoading Methylome data...\n")
     
     if (params$boot$perform) {
       # Load only selected CpG sites for bootstrapping
@@ -185,7 +171,6 @@ perform.analysis <- function(params) {
       dplyr::mutate(dplyr::across(tidyselect:::where(is.factor), as.numeric)) %>%
       dplyr::rename_with(., ~ paste0(., "_me") %>% unname() %>% unlist(), 
         tidyselect::starts_with("cg"))
-    cat("\nFinished loading Methylome data.\n")
 
     # Filter CpG sites
     samples <- meth %>% dplyr::select(c(SampleID, HelixID))
@@ -208,7 +193,6 @@ perform.analysis <- function(params) {
     
     path.meta <- "data/"
     path.data <- "../data/"
-    #path.data <- "~/mounts/PROJECTES/HELIX/lorenzoF/data/"
   }
 
   exposome <- readRDS(file = paste0(path.data, "exposome_1", 
@@ -284,10 +268,6 @@ perform.analysis <- function(params) {
     seed <- params$boot$seed # Same by time point, different for each bootstrapping
     set.seed(seed = seed)
     common.subjects <- sample.int(n = length(common.subjects), replace = TRUE)
-    # common.subjects <- sample(common.subjects, 
-    #                           size = length(common.subjects), replace = TRUE) %>%
-    #   tibble::as_tibble() %>%
-    #   `colnames<-`(c("HelixID"))
   }
   ##############################################################################
   
@@ -343,7 +323,6 @@ perform.analysis <- function(params) {
 ##### Function to fit GGM to data #####
 #######################################
 fit.ggm <- function(data, params) {
-  cat(paste0("Fitting model: ", params$model.code, "..."))
   
   ## Prepare data
   # Covariates for adjusting models
@@ -363,7 +342,6 @@ fit.ggm <- function(data, params) {
   }
   
   # Adjust for covariates
-  cat("\nControlling for confounders...\n")
   if (params$perform.adj$perform == TRUE) {
     if (params$perform.adj$method == "variables") {
       all.covariates <- list.covariates()
@@ -392,7 +370,6 @@ fit.ggm <- function(data, params) {
   gc()
   
   # Transform datasets
-  cat("\nTransforming data...\n")
   data <- transform.data(data = data, scale.new = params$scale.new, 
                          is.adjusted = params$perform.adj$perform)
   
@@ -423,10 +400,9 @@ fit.ggm <- function(data, params) {
              dim(data)[1], "x", dim(data)[2], ".\n"))
   num.chemicals <- data %>%
     dplyr::select(tidyselect::contains("_e"))
-  cat(paste0("Number of chemicals: ", dim(num.chemicals)[2], ".\n"))
-  cat("\n##################################################\n\n")
+  cat(paste0("Number of chemicals: ", dim(num.chemicals)[2], "."))
+  cat("\n##################################################\n")
   
-  cat("\nComputing the partial correlations...\n")
   if (params$package.corr == "corr.corr") {
     stop()
     corr.res <- correlation::correlation(data = data, 
@@ -478,13 +454,6 @@ process.ggms <- function(list.ggms, active,
       labels.columns <- attributes(list.ggms[[cor.res]]$model)$dimnames[[2]]
       # Estimated shrinkage coefficient
       lambda <- attributes(list.ggms[[cor.res]]$model)$lambda
-      
-      # Dataframe with correlation coefficients
-      # df <- list.ggms[[cor.res]]$model[1:len, 1:len] %>%
-      #   tibble::as_tibble() %>%
-      #   dplyr::mutate(., row.names = labels.rows)
-      # df <- tibble::column_to_rownames(df, var = "row.names")
-      # colnames(df) <- labels.columns
       
       # "Raw" correlation matrix
       pcorr.mat <- list.ggms[[cor.res]]$model
@@ -679,7 +648,6 @@ net.properties <- function(ggms, type.networks,
       code <- strsplit(n, "_")[[1]][2] %>% strsplit(., "\\.") %>% .[[1]] %>%
         as.list() %>% .[[1]] %>% strsplit(., "") %>% .[[1]] %>% .[6]
     }
-    cat("\n", paste0("Computing network properties: ", n, "..."), "\n")
     
     node.attributes <- l %>% tidygraph::activate(., what = "nodes") %>%
       tidygraph::as_tibble() %>% dplyr::mutate(idx = seq.int(nrow(.)))
@@ -759,7 +727,6 @@ merge.networks <- function(ggms, exposure.group, omic.type = "none",
         as.list() %>% .[[1]] %>% strsplit(., "") %>% .[[1]] %>% .[6]
     }
     if (code != exposure.group) next
-    cat("\n", paste0("Processing GGM: ", n, "..."), "\n")
     
     node.attributes <- l %>% tidygraph::activate(., what = "nodes") %>%
       tidygraph::as_tibble() %>% dplyr::mutate(idx = seq.int(nrow(.)))
@@ -908,12 +875,9 @@ merge.networks <- function(ggms, exposure.group, omic.type = "none",
                   dpi = 720/2, 
                   width = 20, height = 12)
   
-  info %>%
-    gt::gt() %>%
-    gt::gtsave(., file = "output/posters/pptox22_tex/dat/summary_edges.tex")
-  # pdf(paste0(path.save, "info_", exposure.group, ".pdf"))
-  # gridExtra::grid.table(info, rows = NULL)
-  # dev.off()
+  # info %>%
+  #   gt::gt() %>%
+  #   gt::gtsave(., file = "output/posters/pptox22_tex/dat/summary_edges.tex")
   
   # Recode labels to long format and remove coding from variables' names
   net <- net %>%
@@ -1117,7 +1081,6 @@ analyse.cc <- function(net, path.save) {
     tidygraph::group_by(group)
   num.cc <- grouped.net %>% dplyr::select(group) %>% tidygraph::as_tibble() %>%
     max()
-  cat(paste0("\nNumber of connected components: ", num.cc, ".\n"))
   # Iterate over found connected components
   for (idx in 1:num.cc) {
     # Filter one connected component
