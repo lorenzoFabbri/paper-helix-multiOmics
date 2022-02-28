@@ -28,13 +28,13 @@ library(sqldf)
 main.pipeline.ggm <- function(params) {
   
   # Delete images in directory
-  dir.delete <- paste0("./results/ggm/", params$key.save, "/")
-  files.del <- dir(path = dir.delete, pattern = "*.png")
-  file.remove(file.path(dir.delete, files.del))
-  files.del <- dir(path = dir.delete, pattern = "*.pdf")
-  file.remove(file.path(dir.delete, files.del))
-  files.del <- dir(path = dir.delete, pattern = "*.csv")
-  file.remove(file.path(dir.delete, files.del))
+  # dir.delete <- paste0("./results/ggm/", params$key.save, "/")
+  # files.del <- dir(path = dir.delete, pattern = "*.png")
+  # file.remove(file.path(dir.delete, files.del))
+  # files.del <- dir(path = dir.delete, pattern = "*.pdf")
+  # file.remove(file.path(dir.delete, files.del))
+  # files.del <- dir(path = dir.delete, pattern = "*.csv")
+  # file.remove(file.path(dir.delete, files.del))
   
   ## Parameters
   # Dictionary to create correct model.code
@@ -440,7 +440,7 @@ fit.ggm <- function(data, params) {
 #################################################################
 process.ggms <- function(list.ggms, active, 
                          filter.mixed.interactions, is.directed, 
-                         params) {
+                         params, boot = FALSE) {
   
   processed.res <- list()
   for (cor.res in names(list.ggms)) {
@@ -534,9 +534,11 @@ process.ggms <- function(list.ggms, active,
     }
     
     # Store correlation matrix
-    base::saveRDS(object = pcorr.mat, 
-                  file = paste0("../data/correlations/pcorr_mat_raw_", 
-                                cor.res))
+    if (boot == FALSE) {
+      base::saveRDS(object = pcorr.mat, 
+                    file = paste0("../data/correlations/pcorr_mat_raw_", 
+                                  cor.res))
+    }
     
     ## Compute p-values for partial correlation coefficients
     df.significance <- GeneNet::network.test.edges(r.mat = pcorr.mat, 
@@ -557,9 +559,11 @@ process.ggms <- function(list.ggms, active,
       dplyr::mutate(node1 = labels.rows[node1]) %>%
       dplyr::mutate(node2 = labels.columns[node2])
     gc()
-    base::saveRDS(object = df.significance, 
-                  file = paste0("../data/correlations/network_raw_", 
-                                cor.res))
+    if (boot == FALSE) {
+      base::saveRDS(object = df.significance, 
+                    file = paste0("../data/correlations/network_raw_", 
+                                  cor.res))
+    }
     
     # Eventually filter network based on either probability or q-value
     if (params$method.ggm == "none") {
@@ -608,9 +612,11 @@ process.ggms <- function(list.ggms, active,
     processed.res[[cor.res]][["net"]]  <- df.filtered # Actual network w/ p-values
     gc()
     
-    base::saveRDS(object = df.filtered, 
-                  file = paste0("../data/correlations/network_filtered_", 
-                                cor.res))
+    if (boot == FALSE) {
+      base::saveRDS(object = df.filtered, 
+                    file = paste0("../data/correlations/network_filtered_", 
+                                  cor.res))
+    }
     
     # Save final network
     gg <- ggraph::ggraph(processed.res[[cor.res]][["net"]], 
@@ -619,9 +625,11 @@ process.ggms <- function(list.ggms, active,
       ggraph::geom_node_point(mapping = aes(shape = type, size = degree, 
                                             color = type)) +
       ggraph::geom_node_text(mapping = aes(label = name), repel = TRUE)
-    ggplot2::ggsave(paste0(params$path.save.plots, cor.res, ".pdf"), 
-                    dpi = 720/2, 
-                    width = 20, height = 12)
+    if (boot == FALSE) {
+      ggplot2::ggsave(paste0(params$path.save.plots, cor.res, ".pdf"), 
+                      dpi = 720/2, 
+                      width = 20, height = 12)
+    }
   } # End loop fitted models
   
   return(processed.res)
@@ -711,7 +719,8 @@ net.properties <- function(ggms, type.networks,
 ##### Function to merge networks based on parameter (e.g., time point) #####
 ############################################################################
 merge.networks <- function(ggms, exposure.group, omic.type = "none", 
-                           how.to.join, type.networks, path.save) {
+                           how.to.join, type.networks, path.save, 
+                           boot = FALSE) {
   
   # Iterate over fitted models
   df.all <- list()
@@ -808,7 +817,9 @@ merge.networks <- function(ggms, exposure.group, omic.type = "none",
   gc()
   
   # Store merged network
-  base::saveRDS(object = df, file = "../data/correlations/merged_net")
+  if (boot == FALSE) {
+    base::saveRDS(object = df, file = "../data/correlations/merged_net")
+  }
   
   # Plot merged networks
   net <- df %>% tidygraph::as_tbl_graph(directed = TRUE)
@@ -871,9 +882,9 @@ merge.networks <- function(ggms, exposure.group, omic.type = "none",
                    legend.title = element_text(size = 25)) +
     ggplot2::labs(fill = "edge type") +
     ggplot2::scale_fill_brewer(palette = "Spectral")
-  ggplot2::ggsave(paste0("output/posters/pptox22_tex/images/piechart_edges.pdf"), 
-                  dpi = 720/2, 
-                  width = 20, height = 12)
+  # ggplot2::ggsave(paste0("output/posters/pptox22_tex/images/piechart_edges.pdf"), 
+  #                 dpi = 720/2, 
+  #                 width = 20, height = 12)
   
   # info %>%
   #   gt::gt() %>%
@@ -914,9 +925,11 @@ merge.networks <- function(ggms, exposure.group, omic.type = "none",
                    axis.ticks = ggplot2::element_blank(), 
                    legend.title = element_text(size = 25), 
                    legend.text = element_text(size = 22))
-  ggplot2::ggsave(paste0(path.save, "merged_", exposure.group, ".pdf"), 
-                  dpi = 720/2, 
-                  width = 20, height = 12)
+  if (boot == FALSE) {
+    ggplot2::ggsave(paste0(path.save, "merged_", exposure.group, ".pdf"), 
+                    dpi = 720/2, 
+                    width = 20, height = 12)
+  }
   
   # Plot distribution of correlation coefficients from 2 time points 
   # and the relative change for each edge/association
@@ -931,9 +944,11 @@ merge.networks <- function(ggms, exposure.group, omic.type = "none",
     ggplot2::ggplot(aes(x = value, fill = key)) +
     ggplot2::geom_histogram(alpha = 0.6, position = "identity") +
     ggplot2::labs(title = exposure.group)
-  ggplot2::ggsave(paste0(path.save, "distCoeffs_", exposure.group, ".pdf"), 
-                  dpi = 720/2, 
-                  width = 20, height = 12)
+  if (boot == FALSE) {
+    ggplot2::ggsave(paste0(path.save, "distCoeffs_", exposure.group, ".pdf"), 
+                    dpi = 720/2, 
+                    width = 20, height = 12)
+  }
   
   edges <- net %>%
     tidygraph::activate(., what = "edges") %>%

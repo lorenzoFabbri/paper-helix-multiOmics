@@ -163,6 +163,7 @@ visualize.common.cpgs <- function(path, threshold) {
 plot.bootstrapping.nets <- function(path) {
   merged.nets <- list.files(path = path, 
                             pattern = "merged_net")
+  path.save <- "results/images/"
   
   net.all <- list()
   df.all <- list()
@@ -283,7 +284,6 @@ plot.bootstrapping.nets <- function(path) {
                                     list(plt))
     }
   }
-  path.save <- "results/images/"
   grid.t1 <- gridExtra::grid.arrange(grobs = all.plots$pcor.x %>% unname(), ncol = 2, 
                                      nrow = ceiling(length(all.plots$pcor.x) / 2))
   ggplot2::ggsave(filename = paste0(path.save, "pcor_t1_boot.pdf"), 
@@ -418,7 +418,7 @@ plot.cor.exp.time <- function() {
                    axis.title.x = element_text(angle = 0, color = "grey20"), 
                    axis.title.y = element_text(angle = 0, color = "grey20")) +
     ggplot2::labs(x = "t1", y = "t2")
-  ggplot2::ggsave(paste0(path.save, "corrPlot_exps", time.point, ".png"), 
+  ggplot2::ggsave(paste0(path.save, "corrPlot_exps", ".png"), 
                   dpi = 720/2, 
                   width = 20, height = 12, plot = plt)
 }
@@ -507,7 +507,8 @@ plot.heatmaps <- function(time.point) {
 }
 
 ##### Function to load and filter fitted networks
-clean.net <- function(path.corr, type.net, key.save = "") {
+clean.net <- function(path.corr, type.net, center.node = NULL, 
+                      key.save = "") {
   path.save <- "results/images/"
   is.directed <- FALSE
   
@@ -549,6 +550,22 @@ clean.net <- function(path.corr, type.net, key.save = "") {
     )) %>%
     dplyr::mutate(name = stringr::str_replace(name, "_.*", ""))
   
+  if (!is.null(center.node)) {
+    # Filter network for 1st-degree neighbors of selected node
+    node_tbl <- data.frame(tidygraph::activate(net, "nodes"))
+    node_idx <- rownames(node_tbl)[node_tbl$name == center.node]
+    node_idx <- as.integer(node_idx)
+    
+    net <- net %>%
+      tidygraph::convert(to_local_neighborhood, 
+                         node = node_idx, 
+                         order = 1, 
+                         mode = "all")
+    
+    # Modify `key.save` accordingly
+    key.save <- paste0(key.save, "_", center.node)
+  }
+  
   gg <- ggraph::ggraph(net, 
                        layout = "kk") +
     ggraph::geom_edge_link(colour = "darkgrey", alpha = 0.75) +
@@ -576,7 +593,7 @@ net.properties <- function(list.net.dfs, is.merged, how.to.join,
   properties.all <- list()
   df.all <- list()
   for (n in names(list.net.dfs)) {
-    l <- list.net.dfs[[n]]
+    l <- list.net.dfs[[n]]$net
     
     node.attributes <- l %>% tidygraph::activate(., what = "nodes") %>%
       tidygraph::as_tibble() %>% dplyr::mutate(idx = seq.int(nrow(.)))

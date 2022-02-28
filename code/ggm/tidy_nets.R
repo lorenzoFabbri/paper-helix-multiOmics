@@ -5,6 +5,7 @@ library(tidyverse)
 library(igraph)
 library(RColorBrewer)
 
+rm(list=ls())
 source("code/multivariate_analysis/dictionaries.R")
 
 ################################################################################
@@ -68,6 +69,28 @@ for (i in 1:num.ccs) {
   net <- res$mod_2.2.2.5.5$net %>%
     tidygraph::mutate(class = as.factor(net.nodes$class)) %>%
     tidygraph::to_undirected()
+  
+  ##### Save to file to use with Cytoscape #####
+  # Save seprarately edge list and node attributes
+  if (!is.null(to.filter) & to.filter == 1) {
+    # Save full network only once
+    ig <- tidygraph::as.igraph(net)
+    edge.list <- as.data.frame(igraph::get.edgelist(ig))
+    vertex.attribs <- igraph::get.vertex.attribute(ig)
+    vertex.attribs <- dplyr::bind_rows(
+      c(as.data.frame(vertex.attribs$name), 
+      as.data.frame(vertex.attribs$label), 
+      as.data.frame(vertex.attribs$class))
+    ) %>%
+      `colnames<-`(c("node", "layer", "class"))
+    write.csv(edge.list, 
+              paste0(path.res, "/full_mergedNet", ".csv"), 
+              row.names = FALSE, quote = FALSE)
+    write.csv(vertex.attribs, 
+              paste0(path.res, "/full_mergedNet_attributes", ".csv"), 
+              row.names = FALSE, quote = FALSE)
+  }
+  
   if (!is.null(to.filter)) {
     # Filter specific connected component within the merged network
     net <- net %>% tidygraph::filter(group == to.filter)
@@ -86,6 +109,12 @@ for (i in 1:num.ccs) {
   
   path.res.tmp <- paste0(path.res, "/cc_", to.filter)
   dir.create(path.res.tmp)
+  ##### Save to file to use with Cytoscape #####
+  # Save each connected component
+  ig <- tidygraph::as.igraph(net)
+  as.data.frame(igraph::get.edgelist(ig)) %>%
+    write.csv(., paste0(path.res.tmp, "/cc_", to.filter, ".csv"), 
+              row.names = FALSE, quote = FALSE)
   
   net <- net %>% tidygraph::activate("nodes") %>%
     # Group nodes based on the leading eigenvector of the modularity matrix
@@ -131,12 +160,6 @@ for (i in 1:num.ccs) {
                     dpi = 720/2, 
                     width = 20, height = 12)
   } # End loop over modules within current connected component
-  
-  # Save to file to use with Cytoscape
-  ig <- tidygraph::as.igraph(net)
-  as.data.frame(igraph::get.edgelist(ig)) %>%
-    write.csv(., paste0(path.res.tmp, "/ig_", to.filter, ".csv"), 
-              row.names = FALSE, quote = FALSE)
   
   # Tidy plot of current connected component
   gg <- ggraph::ggraph(net, layout = "fr") +

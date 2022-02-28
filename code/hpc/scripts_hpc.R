@@ -107,13 +107,13 @@ run_analysis <- function(choice, key.save.results) {
       processed.ggms <- process.ggms(list.ggms = ggms, active = active, 
                                      filter.mixed.interactions = FALSE, 
                                      is.directed = FALSE, 
-                                     params = params)
+                                     params = params, boot = TRUE)
       rm(ggms)
       gc()
       res <- merge.networks(ggms = processed.ggms, exposure.group = 5, 
                             how.to.join = "inner", 
                             type.networks = "ggm", 
-                            path.save = path.save.res)
+                            path.save = path.save.res, boot = TRUE)
       base::save(res, 
                  file = paste0(path.save.res, "merged_net", itr, ".RData"))
       rm(processed.ggms)
@@ -163,4 +163,4 @@ run_analysis <- function(choice, key.save.results) {
 
 setwd("/PROJECTES/HELIX/lorenzoF/paper-helix-multiOmics/")
 options(device = NULL)
-run_analysis(choice = "ggm", key.save.results = "paper")
+run_analysis(choice = "ggm.boot", key.save.results = "paper")

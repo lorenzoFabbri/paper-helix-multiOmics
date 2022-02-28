@@ -364,7 +364,7 @@ ggplot2::ggplot() +
                          family = "serif", size = 5, alpha = 0.5, 
                          data = venn@region) +
   ggplot2::theme_void()
-ggplot2::ggsave(filename = "venn_t1.png", path = "results/images/", 
+ggplot2::ggsave(filename = "venn_popT1.png", path = "results/images/", 
                 height = 12, width = 12)
 
 dat <- list(
@@ -384,7 +384,7 @@ ggplot2::ggplot() +
                          family = "serif", size = 5, alpha = 0.5, 
                          data = venn@region) +
   ggplot2::theme_void()
-ggplot2::ggsave(filename = "venn_t2.png", path = "results/images/", 
+ggplot2::ggsave(filename = "venn_popT2.png", path = "results/images/", 
                 height = 12, width = 12)
 ```
 
