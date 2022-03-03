@@ -25,7 +25,7 @@ library(sqldf)
 #####################################################
 ##### Function performing main pipeline for GMM #####
 #####################################################
-main.pipeline.ggm <- function(params) {
+main.pipeline.ggm <- function(params, save.data) {
   
   # Delete images in directory
   # dir.delete <- paste0("./results/ggm/", params$key.save, "/")
@@ -111,7 +111,7 @@ main.pipeline.ggm <- function(params) {
     # Method/package to be used to compute the correlation matrix (i.e., the GGM)
     el$package.corr <- package.corr
     
-    res <- perform.analysis(params = el)
+    res <- perform.analysis(params = el, save.data = save.data)
     gc()
     
     list.fitted.models[[el$model.code]][["model"]] <- res$ggm
@@ -127,7 +127,7 @@ main.pipeline.ggm <- function(params) {
 #################################################################
 ##### Function to perform analysis given list of parameters #####
 #################################################################
-perform.analysis <- function(params) {
+perform.analysis <- function(params, save.data) {
   # Load all data: -omics, exposures, metadata
   if (params$is.hpc == TRUE) {
     ## We are using data from the new HPC cluster
@@ -268,6 +268,10 @@ perform.analysis <- function(params) {
     seed <- params$boot$seed # Same by time point, different for each bootstrapping
     set.seed(seed = seed)
     common.subjects <- sample.int(n = length(common.subjects), replace = TRUE)
+    common.subjects %>%
+      write.csv(file = paste0(params$boot$path.save.subjects, 
+                              "subjects_", seed, ".csv"), 
+                quote = FALSE, row.names = FALSE)
   }
   ##############################################################################
   
@@ -298,7 +302,7 @@ perform.analysis <- function(params) {
     omics     = omic, 
     metadata  = metadata
   )
-  if (!params$boot$perform) {
+  if (!params$boot$perform & save.data) {
     base::saveRDS(object = dat$exposures, 
                   file = "../data/dist_vars/exposures_raw")
     base::saveRDS(object = dat$omics, 
@@ -308,7 +312,8 @@ perform.analysis <- function(params) {
   }
   
   # Run main analysis
-  ggm.fitted <- fit.ggm(data = dat, params = params)
+  ggm.fitted <- fit.ggm(data = dat, params = params, 
+                        save.data = save.data)
   rm(dat)
   gc()
   
@@ -322,7 +327,7 @@ perform.analysis <- function(params) {
 #######################################
 ##### Function to fit GGM to data #####
 #######################################
-fit.ggm <- function(data, params) {
+fit.ggm <- function(data, params, save.data) {
   
   ## Prepare data
   # Covariates for adjusting models
@@ -385,13 +390,19 @@ fit.ggm <- function(data, params) {
     data <- as.data.frame(data) %>%
       dplyr::select(dplyr::any_of(selected.biomarkers))
     
+    # Case when not using Methylation data
+    if (params$is.hpc == FALSE) {
+      selected.biomarkers <- selected.biomarkers[!grepl("_me", 
+                                                        selected.biomarkers)]
+    }
+    
     if (dim(data)[2] != length(selected.biomarkers)) { stop(call. = TRUE) }
     if (nrow(data) != nrow.old) { stop(call. = TRUE) }
   }
   gc()
   ##############################################################################
   
-  if (!params$boot$perform) {
+  if (!params$boot$perform & save.data) {
     base::saveRDS(object = data, file = "../data/dist_vars/data_matrix_processed")
   }
   dim.data <- dim(data)[1]
@@ -417,7 +428,7 @@ fit.ggm <- function(data, params) {
     
   } else if (params$package.corr == "huge.glasso") {
     corr.res <- bootnet::estimateNetwork(data = data, default = "huge", 
-                                         tuning = 0.2, graphType = "pcor", 
+                                         tuning = 0.1, graphType = "pcor", 
                                          verbose = TRUE,  datatype = "normal", 
                                          nCores = 6)
     
@@ -440,7 +451,7 @@ fit.ggm <- function(data, params) {
 #################################################################
 process.ggms <- function(list.ggms, active, 
                          filter.mixed.interactions, is.directed, 
-                         params, boot = FALSE) {
+                         params, boot = FALSE, save.data) {
   
   processed.res <- list()
   for (cor.res in names(list.ggms)) {
@@ -534,7 +545,7 @@ process.ggms <- function(list.ggms, active,
     }
     
     # Store correlation matrix
-    if (boot == FALSE) {
+    if (boot == FALSE & save.data) {
       base::saveRDS(object = pcorr.mat, 
                     file = paste0("../data/correlations/pcorr_mat_raw_", 
                                   cor.res))
@@ -559,7 +570,7 @@ process.ggms <- function(list.ggms, active,
       dplyr::mutate(node1 = labels.rows[node1]) %>%
       dplyr::mutate(node2 = labels.columns[node2])
     gc()
-    if (boot == FALSE) {
+    if (boot == FALSE & save.data) {
       base::saveRDS(object = df.significance, 
                     file = paste0("../data/correlations/network_raw_", 
                                   cor.res))
@@ -612,7 +623,7 @@ process.ggms <- function(list.ggms, active,
     processed.res[[cor.res]][["net"]]  <- df.filtered # Actual network w/ p-values
     gc()
     
-    if (boot == FALSE) {
+    if (boot == FALSE & save.data) {
       base::saveRDS(object = df.filtered, 
                     file = paste0("../data/correlations/network_filtered_", 
                                   cor.res))
@@ -720,7 +731,7 @@ net.properties <- function(ggms, type.networks,
 ############################################################################
 merge.networks <- function(ggms, exposure.group, omic.type = "none", 
                            how.to.join, type.networks, path.save, 
-                           boot = FALSE) {
+                           boot = FALSE, save.data) {
   
   # Iterate over fitted models
   df.all <- list()
@@ -817,7 +828,7 @@ merge.networks <- function(ggms, exposure.group, omic.type = "none",
   gc()
   
   # Store merged network
-  if (boot == FALSE) {
+  if (boot == FALSE & save.data) {
     base::saveRDS(object = df, file = "../data/correlations/merged_net")
   }
   

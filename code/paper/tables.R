@@ -74,11 +74,10 @@ tables.population.desc <- function() {
 }
 
 ##### Function to describe networks
-tables.networks <- function(path.to.net, time.point) {
+tables.networks <- function(path.to.net, time.point, path.save) {
   #net <- get(load(("../data/intermediate_res_ggm/merged_net.RData")))
   #net <- net$mod_2.2.2.5.5$net
   
-  path.save <- "results/images/"
   path.data <- "../data/"
   metabs <- readRDS(file = paste0(path.data, "metabSerum_1A")) %>%
     .$feature.data %>%
@@ -205,11 +204,12 @@ tables.networks <- function(path.to.net, time.point) {
     # Network containing chemicals belonging to only one chemical class (e.g., phenols)
     net.sub <- net %>%
       tidygraph::filter(!(class %in% setdiff(chem.classes, chem.class)))
+    net.sub.old <- net.sub
     net.sub <- tidy.graph(net.sub)
     
     df.filtered <- net.sub %>%
-      dplyr::filter((label.x == "exposure" & label.y != "exposure") | 
-                      (label.x != "exposure" & label.y == "exposure")) %>%
+      #dplyr::filter((label.x == "exposure" & label.y != "exposure") | 
+      #                (label.x != "exposure" & label.y == "exposure")) %>%
       dplyr::select(-dplyr::any_of(c("class.x", "class.y", 
                                      "pval.x", "pval.y", "pval", "prob"))) %>%
       dplyr::mutate(dplyr::across(where(is.numeric), round, 3))
@@ -254,6 +254,20 @@ tables.networks <- function(path.to.net, time.point) {
       `colnames<-`(c("node", "layer"))
     n.all[[chem.class]] <- dplyr::bind_rows(n.a, n.b) %>%
       dplyr::distinct()
+    
+    # Check that number of nodes/edges is same as in filtered graph
+    num.nodes <- length(igraph::V(tidygraph::as.igraph(net.sub.old)))
+    num.edges <- length(igraph::E(tidygraph::as.igraph(net.sub.old)))
+    print(paste0("Number of nodes: ", num.nodes, " - ", 
+                 nrow(n.all[[chem.class]]), "."))
+    print(paste0("Number of edges: ", num.edges, " - ", 
+                 nrow(df.filtered), "."))
+    # if (nrow(n.all[[chem.class]]) != num.nodes) {
+    #   stop(paste0("Number of nodes does not match for: ", chem.class))
+    #   }
+    # if (nrow(df.filtered) != num.edges) {
+    #   stop(paste0("Number of edges does not match for: ", chem.class))
+    # }
   }
   
   # Merge and save table results (description) to file
@@ -280,46 +294,93 @@ tables.networks <- function(path.to.net, time.point) {
                              "_direct.png"))
   
   # Merge and save table results (individual edges) to file
+  # Start from full, merged network
   if (is.null(time.point)) {
-    ret <- all.tables %>%
-      dplyr::bind_rows(.id = "column_label") %>%
-      dplyr::mutate(sign = as.numeric(sign))
+    ret <- tidy.graph(net) %>%
+      dplyr::select(-dplyr::any_of(c("class.x", "class.y", 
+                                     "pval.x", "pval.y", "pval", "prob"))) %>%
+      dplyr::mutate(dplyr::across(where(is.numeric), round, 3)) %>%
+      dplyr::arrange(name.x, name.y, label.x, label.y, 
+                     desc(pcor.x), desc(pcor.y)) %>%
+      `colnames<-`(c("node.a", "layer.a", "degree.a", 
+                     "node.b", "layer.b", "degree.b", 
+                     "pcor.a", "qval.a", "sign", "pcor.b", "qval.b")) %>%
+      dplyr::select(c(node.a, layer.a, degree.a, 
+                      node.b, layer.b, degree.b, 
+                      sign, 
+                      pcor.a, qval.a, 
+                      pcor.b, qval.b))
+    colnames(ret) <- c("node.a", "layer.a", "degree.a", 
+                       "node.b", "layer.b", "degree.b", 
+                       "sign", 
+                       "pcor.t1", "qval.t1", "pcor.t2", "qval.t2")
     
     if (is.null(time.point)) {
       ret <- ret %>%
-        dplyr::arrange(column_label, node.a, layer.a, node.b, layer.b, 
+        dplyr::arrange(node.a, layer.a, node.b, layer.b, 
                        sign, desc(pcor.t1), desc(qval.t1), 
                        desc(pcor.t2), desc(qval.t2)) %>%
         dplyr::select(-c(sign))
     } else {
       ret <- ret %>%
-        dplyr::arrange(column_label, node.a, layer.a, node.b, layer.b, 
+        dplyr::arrange(node.a, layer.a, node.b, layer.b, 
                        sign, desc(pcor), desc(qval)) %>%
         dplyr::select(-c(sign))
     }
     
-    theme.table <- gridExtra::ttheme_default(core = list(
-      bg_params = list(
-        fill = c(rep(c("#F0F0F0"), 
-                     length.out = dim(ret %>% dplyr::filter(column_label == "pesticides"))[1]), 
-                 rep(c("#E0E0E0"), 
-                     length.out = dim(ret %>% dplyr::filter(column_label == "phenols"))[1]), 
-                 rep(c("#F0F0F0"), 
-                     length.out = dim(ret %>% dplyr::filter(column_label == "phthalates.high"))[1]), 
-                 rep(c("#E0E0E0"), 
-                     length.out = dim(ret %>% dplyr::filter(column_label == "phthalates.low"))[1]))
+    # Add genes associated to CpG sites
+    ewas.cpgs <- data.table::fread("../data/methylome/results.txt") %>%
+      tibble::as_tibble()
+    for (idx in 1:nrow(ret)) {
+      cpg <- ifelse(
+        ret[idx, ]$layer.a == "methylome", 
+        ret[idx, ]$node.a[[1]], 
+        ifelse(
+          ret[idx, ]$layer.b == "methylome", 
+          ret[idx, ]$node.b[[1]], 
+          "none"
+        )
       )
-    ))
-    # Add results MeSH
+      
+      if (cpg != "none") {
+        genes <- ewas.cpgs[ewas.cpgs$CpG == cpg, ]$Gene
+        genes <- genes[!grepl("-", genes)]
+        if (length(genes) > 1) {
+          genes <- paste(unique(genes), collapse = ";")
+        } else { genes <- "-" }
+        
+        ret[idx, "genes"] = genes
+      } else { ret[idx, "genes"] <- "" }
+    } # End loop to add genes
     
-    ret <- ret %>% dplyr::select(-c(column_label))
-    png(paste0("results/images/edges_net", 
+    # theme.table <- gridExtra::ttheme_default(core = list(
+    #   bg_params = list(
+    #     fill = c(rep(c("#F0F0F0"), 
+    #                  length.out = dim(ret %>% dplyr::filter(column_label == "pesticides"))[1]), 
+    #              rep(c("#E0E0E0"), 
+    #                  length.out = dim(ret %>% dplyr::filter(column_label == "phenols"))[1]), 
+    #              rep(c("#F0F0F0"), 
+    #                  length.out = dim(ret %>% dplyr::filter(column_label == "phthalates.high"))[1]), 
+    #              rep(c("#E0E0E0"), 
+    #                  length.out = dim(ret %>% dplyr::filter(column_label == "phthalates.low"))[1]))
+    #   )
+    # ))
+    
+    #ret <- ret %>% dplyr::select(-c(column_label))
+    ret <- ret %>% dplyr::mutate(id = dplyr::row_number())
+    chunk = 20
+    n <- nrow(ret)
+    r <- rep(1:ceiling(n / chunk), each = chunk)[1:n]
+    pdf(paste0("results/images/edges_net", 
                ifelse(
                  is.null(time.point), "Merged", time.point
                ), 
-               "_direct.png"), 
-        height = 50 * nrow(ret), width = 200 * ncol(ret))
-    gridExtra::grid.table(ret, rows = NULL, theme = theme.table)
+               "_full.pdf"), 
+        height = 7, width = 27)
+    lapply(split(ret, r), function(d) {
+      grid::grid.newpage()
+      gridExtra::grid.table(d, rows = NULL)
+    })
     dev.off()
-  }
+  } # End if for table of edges
 }

@@ -160,10 +160,9 @@ visualize.common.cpgs <- function(path, threshold) {
 }
 
 ##### Function to load results bootstrapping merged networks and visualize intervals
-plot.bootstrapping.nets <- function(path) {
+plot.bootstrapping.nets <- function(path, path.save) {
   merged.nets <- list.files(path = path, 
                             pattern = "merged_net")
-  path.save <- "results/images/"
   
   net.all <- list()
   df.all <- list()
@@ -557,7 +556,7 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
     node_idx <- as.integer(node_idx)
     
     net <- net %>%
-      tidygraph::convert(to_local_neighborhood, 
+      tidygraph::convert(tidygraph::to_local_neighborhood, 
                          node = node_idx, 
                          order = 1, 
                          mode = "all")
@@ -566,9 +565,33 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
     key.save <- paste0(key.save, "_", center.node)
   }
   
+  # Add median of partial correlation across time points to label edges
+  if (!is.null(center.node)) {
+    pcor.median <- net %>%
+      tidygraph::activate("edges") %>%
+      tidygraph::as_tibble() %>%
+      dplyr::rowwise() %>%
+      dplyr::mutate(med = median(c(pcor.x, pcor.y)))
+    
+    net <- net %>%
+      tidygraph::activate("edges") %>%
+      tidygraph::mutate(lab = pcor.median$med) %>%
+      tidygraph::mutate(lab = round(lab, 3)) %>%
+      tidygraph::mutate(sig = factor(ifelse(sign(lab) == 1, 
+                                            "dodgerblue1", "orangered1")))
+  } else {
+    net <- net %>%
+      tidygraph::activate("edges") %>%
+      tidygraph::mutate(lab = 0.05) %>%
+      tidygraph::mutate(sig = "darkgrey")
+  }
+  
   gg <- ggraph::ggraph(net, 
                        layout = "kk") +
-    ggraph::geom_edge_link(colour = "darkgrey", alpha = 0.75) +
+    ggraph::geom_edge_link(alpha = 0.75, 
+                           mapping = aes(label = lab, 
+                                         width = abs(lab * 10), 
+                                         color = sig)) +
     ggraph::geom_node_point(mapping = aes(shape = label, 
                                           color = label), 
                             size = 4) +

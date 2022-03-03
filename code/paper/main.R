@@ -1,10 +1,9 @@
 # Main script to run analyses and analyze results from cluster
 
 rm(list=ls())
-source("code/paper/images.R")
-source("code/paper/tables.R")
 
 ##### Figures #####
+source("code/paper/images.R")
 ## QQ-plot of p-values from results EWAS
 qq.pval.ewas(path = "results/ewaff_win_sva/")
 
@@ -13,7 +12,8 @@ visualize.common.cpgs(path = "results/ewaff_win_sva/",
                       threshold = 0.2)
 
 ## Visualize results of bootstrapping merged GGM
-plot.bootstrapping.nets(path = "results/ggm/paper_boot/")
+plot.bootstrapping.nets(path = "results/ggm/paper_boot/", 
+                        path.save = "results/images/")
 
 ## Visualize correlation exposome between time points
 plot.cor.exp.time()
@@ -41,13 +41,14 @@ for (chem in all.exposures$exposure) {
 }
 
 ##### Tables #####
+source("code/paper/tables.R")
 ## Creates table with population description
 tables.population.desc()
 
 ## Describes networks
 tables.networks(path.to.net = "../data/intermediate_res_ggm/merged_net.RData", 
-                time.point = NULL)
+                time.point = NULL, path.save = "results/images/")
 tables.networks(path.to.net = "../data/intermediate_res_ggm/processed_ggms.RData", 
-                time.point = 1)
+                time.point = 1, path.save = "results/images/")
 tables.networks(path.to.net = "../data/intermediate_res_ggm/processed_ggms.RData", 
-                time.point = 2)
+                time.point = 2, path.save = "results/images/")
