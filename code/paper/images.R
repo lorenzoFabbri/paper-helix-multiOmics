@@ -5,6 +5,102 @@ library(tidygraph)
 
 source("code/multivariate_analysis/dictionaries.R")
 
+##### Function to visualize network as heatmap of adjacency matrix #####
+plot.net.as.heatmap <- function(net) {
+  net <- net %>%
+    tidygraph::activate("nodes") %>%
+    tidygraph::mutate(degree = tidygraph::centrality_degree())
+  
+  ig <- tidygraph::as.igraph(net)
+  df <- igraph::as_data_frame(ig, what = "both")
+  ig.tidy <- igraph::graph_from_data_frame(df$edges, vertices = df$vertices, 
+                                           directed = FALSE)
+  adj <- as.matrix(igraph::as_adjacency_matrix(ig))
+  adj.melted <- reshape::melt(adj)
+  
+  # Heatmap (check https://web.stanford.edu/class/bios221/labs/networks/lab_7_networks.html)
+  Scd <- sna::component.dist(adj)
+  lcc.ind <- which(Scd$membership == which.max(Scd$csize))
+  S <- adj[lcc.ind, lcc.ind]
+  
+  ## Reorder rows and columns of S according to label of nodes
+  selected.nodes <- tibble::as_tibble(colnames(as.matrix(S))) %>%
+    `colnames<-`(c("name"))
+  mapping.to.class <- tibble::as_tibble(df$vertices) %>%
+    dplyr::select(name, label, group) %>%
+    dplyr::inner_join(selected.nodes)
+  if (!identical(selected.nodes$name, mapping.to.class$name)) { stop(call. = TRUE) }
+  mapping.to.class <- mapping.to.class %>%
+    dplyr::mutate(idx = dplyr::row_number()) %>%
+    dplyr::arrange(label, name) %>%
+    dplyr::mutate(idx.sorted = dplyr::row_number())
+  S <- S[mapping.to.class$idx, mapping.to.class$idx, drop = FALSE]
+  
+  to.plot <- as.data.frame(as.matrix(S)) %>%
+    dplyr::mutate(var1 = factor(row.names(.), levels = row.names(.))) %>%
+    tidyr::gather(key = var2, value = value, -var1, 
+                  factor_key = TRUE, na.rm = TRUE) %>%
+    tibble::as_tibble() %>%
+    dplyr::inner_join(mapping.to.class[, c("name", "label")], 
+                      by = c("var1" = "name")) %>%
+    dplyr::inner_join(mapping.to.class[, c("name", "label")], 
+                      by = c("var2" = "name")) %>%
+    dplyr::inner_join(df$vertices[, c("name", "degree")], by = c("var1" = "name")) %>%
+    dplyr::inner_join(df$vertices[, c("name", "degree")], by = c("var2" = "name")) %>%
+    dplyr::group_by(label.y, label.x) %>%
+    dplyr::arrange(desc(degree.y), desc(degree.x), .by_group = TRUE) %>%
+    dplyr::ungroup()
+  
+  plt <- to.plot %>%
+    ggplot2::ggplot(data = ., 
+                    mapping = aes(x = as_factor(var1), 
+                                  y = as_factor(var2), 
+                                  fill = as.factor(value))) +
+    ggplot2::geom_tile(color = "grey") +
+    ggplot2::facet_grid(rows = ggplot2::vars(label.y), 
+                        cols = ggplot2::vars(label.x), 
+                        scales = "free", space = "free", drop = TRUE) +
+    ggplot2::scale_fill_manual(values = c("lightgrey", "red"), name = "adjacency") +
+    ggplot2::theme(axis.text.x = element_text(angle = 90, 
+                                              vjust = 1, hjust = 1, 
+                                              size = 2), 
+                   axis.text.y = element_text(size = 2), 
+                   axis.title.x = element_blank(), 
+                   axis.title.y = element_blank(), 
+                   panel.spacing = unit(0.05, "lines"))
+  ggplot2::ggsave(filename = "results/images/heatmap_adj_mergedNet.png", 
+                  height = 15, width = 15, dpi = 720, plot = plt)
+}
+
+##### Function to plot Venn diagrams from table of direct edges of merged network
+plot.venns.direct.edges <- function(path, path.save, key.save) {
+  df <- readr::read_csv("results/ggm/table_direct_edges.csv", 
+                        col_types = readr::cols()) %>%
+    dplyr::mutate(type.x = dplyr::recode(
+      type.x, 
+      e = "exposure", 
+      ms = "serum metabolome", 
+      mu = "urinary metabolome", 
+      p = "proteome", 
+      me = "methylome"
+    )) %>%
+    dplyr::mutate(type.y = dplyr::recode(
+      type.y, 
+      e = "exposure", 
+      ms = "serum metabolome", 
+      mu = "urinary metabolome", 
+      p = "proteome", 
+      me = "methylome"
+    ))
+  
+  # Merged network
+  venn <- ggVennDiagram::Venn()
+  
+  # Time point 1
+  
+  # Time point 2
+}
+
 ##### Function for QQ plot of p-values from results EWAS
 qq.pval.ewas <- function(path) {
   
@@ -211,11 +307,12 @@ plot.bootstrapping.nets <- function(path, path.save) {
     ggplot2::geom_point(mapping = aes(x = iteration, 
                                       y = num.edges)) +
     ggplot2::labs(x = "bootstrap iteration", 
-                  y = "number of reproducible edges")
+                  y = "log_10(number of reproducible edges)") +
+    ggplot2::scale_y_log10()
   ggplot2::ggsave(filename = paste0(path.save, "repEdges_byIter.pdf"), 
                   plot = plt, 
                   dpi = 720/2, 
-                  width = 7, height = 15)
+                  width = 7, height = 5)
   ##############################################################################
   
   # Find merged network of bootstraps of merged networks
@@ -356,16 +453,41 @@ internal.plotCorr <- function(data, data.feats, save.key) {
       strsplit(x, "_") %>% .[[1]] %>% .[1]
     })
   name.variables <- ifelse(grepl("prot", save.key), "Prot_ID", "Rvar")
+  # data.feats <- data.feats %>%
+  #   dplyr::arrange(Class)
   data <- data[data.feats[[name.variables]]]
+  if (!grepl("prot", save.key)) {
+    colnames(data) <- noquote(data.feats$var) %>%
+      gsub(" ", "", .)
+  }
   
   heatmap.omic <- data %>%
     cor() %>%
     ggcorrplot::ggcorrplot(type = "upper", show.diag = TRUE, 
                            legend.title = "cor", 
                            tl.cex = 4, tl.srt = 90)
+  # heatmap.omic$data <- dplyr::full_join(heatmap.omic$data, data.feats, 
+  #                                       by = c("Var1" = "Rvar"))
+  # heatmap.omic$data <- dplyr::full_join(heatmap.omic$data, data.feats,
+  #                                       by = c("Var2" = "Rvar"))
+  # heatmap.omic$data$Class.y <- factor(heatmap.omic$data$Class.y, 
+  #                                     levels = rev(unique(heatmap.omic$data$Class.y)))
+  # heatmap.omic$coordinates <- ggplot2::coord_cartesian()
+  # heatmap.omic <- heatmap.omic +
+  #   ggplot2::facet_grid(rows = ggplot2::vars(Class.y), 
+  #                       cols = ggplot2::vars(Class.x), 
+  #                       scales = "free", space = "free", 
+  #                       switch = "both") +
+  #   ggplot2::theme(panel.spacing = unit(-0.02, "npc"), 
+  #                  axis.text.x = ggplot2::element_blank(), 
+  #                  axis.text.y = ggplot2::element_blank(), 
+  #                  axis.ticks.y.left = ggplot2::element_blank(), 
+  #                  strip.text = ggplot2::element_text(size = 1), 
+  #                  strip.background = ggplot2::element_rect(color = c("black"), 
+  #                                                           fill = c("green")))
   ggplot2::ggsave(paste0(path.save, save.key, ".png"), 
                   dpi = 720/2, 
-                  width = 20, height = 12)
+                  width = 10, height = 10)
 }
 
 ##### Function to plot correlation exposures between time points
@@ -412,14 +534,14 @@ plot.cor.exp.time <- function() {
   plt <- cor(exposome1 %>% scale(), exposome2 %>% scale()) %>%
     ggcorrplot::ggcorrplot(lab = TRUE, type = "upper", show.diag = TRUE, 
                            legend.title = "cor") +
-    ggplot2::theme(axis.text.x = element_text(colour = all.exposures$color), 
-                   axis.text.y = element_text(colour = all.exposures$color), 
+    ggplot2::theme(#axis.text.x = element_text(colour = all.exposures$color), 
+                   #axis.text.y = element_text(colour = all.exposures$color), 
                    axis.title.x = element_text(angle = 0, color = "grey20"), 
                    axis.title.y = element_text(angle = 0, color = "grey20")) +
     ggplot2::labs(x = "t1", y = "t2")
   ggplot2::ggsave(paste0(path.save, "corrPlot_exps", ".png"), 
                   dpi = 720/2, 
-                  width = 20, height = 12, plot = plt)
+                  width = 10, height = 10, plot = plt)
 }
 
 ##### Function to plot heatmaps of chemicals and -omics w/ additional info
@@ -458,12 +580,12 @@ plot.heatmaps <- function(time.point) {
   heatmap.exp <- exposome %>% scale() %>%
     cor() %>%
     ggcorrplot::ggcorrplot(lab = TRUE, type = "upper", show.diag = TRUE, 
-                           legend.title = "cor") +
-    ggplot2::theme(axis.text.x = element_text(colour = all.exposures$color), 
-                   axis.text.y = element_text(colour = all.exposures$color))
+                           legend.title = "cor")
+    # ggplot2::theme(axis.text.x = element_text(colour = all.exposures$color), 
+    #                axis.text.y = element_text(colour = all.exposures$color))
   ggplot2::ggsave(paste0(path.save, "corrPlot_exps", time.point, ".png"), 
                   dpi = 720/2, 
-                  width = 20, height = 12)
+                  width = 10, height = 10)
   
   # Omics
   ## Serum Metabolome
@@ -501,8 +623,6 @@ plot.heatmaps <- function(time.point) {
                                              "A", "B")))$feature.data
   internal.plotCorr(prot, prot.feats, 
                     paste0("corrPlot_prot", time.point))
-  
-  ## Methylome?
 }
 
 ##### Function to load and filter fitted networks
@@ -510,6 +630,22 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
                       key.save = "") {
   path.save <- "results/images/"
   is.directed <- FALSE
+  
+  path.data <- "../data/"
+  metabs <- readRDS(file = paste0(path.data, "metabSerum_1A")) %>%
+    .$feature.data %>%
+    dplyr::mutate(CHEBI = as.character(CHEBI)) %>%
+    dplyr::mutate(CHEBI = ifelse(grepl("/", CHEBI), 
+                                 strsplit(CHEBI, "/")[[1]][1], 
+                                 CHEBI)) %>%
+    dplyr::select(c(Rvar, var, Class, CHEBI))
+  metabu <- readRDS(file = paste0(path.data, "metabUrine_1A")) %>%
+    .$feature.data %>%
+    dplyr::mutate(CHEBI = as.character(CHEBI)) %>%
+    dplyr::mutate(CHEBI = ifelse(grepl("/", CHEBI), 
+                                 strsplit(CHEBI, "/")[[1]][1], 
+                                 CHEBI)) %>%
+    dplyr::select(c(Rvar, var, CHEBI))
   
   if (is.character(path.corr)) {
     conn <- gzfile(path.corr)
@@ -578,7 +714,7 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
       tidygraph::mutate(lab = pcor.median$med) %>%
       tidygraph::mutate(lab = round(lab, 3)) %>%
       tidygraph::mutate(sig = factor(ifelse(sign(lab) == 1, 
-                                            "dodgerblue1", "orangered1")))
+                                            "orangered1", "dodgerblue1")))
   } else {
     net <- net %>%
       tidygraph::activate("edges") %>%
@@ -586,24 +722,88 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
       tidygraph::mutate(sig = "darkgrey")
   }
   
+  # Use correct variable names (Rvar -> var) and shapes/colors for nodes
+  shapes <- c(
+    exposure = "diamond filled", 
+    methylome = "circle filled", 
+    `serum metabolome` = "triangle down filled", 
+    `urinary metabolome` = "triangle filled", 
+    proteome = "square filled"
+  )
+  shapes.list <- shapes
+  shapes <- shapes %>%
+    stack() %>% tibble::as_tibble() %>%
+    `colnames<-`(c("code.shape", "label"))
+  colours <- c(
+    exposure = "#CCCCCC", 
+    methylome = "#66CCFF", 
+    `serum metabolome` = "#FF3333", 
+    `urinary metabolome` = "#FFCC00", 
+    proteome = "#FFCCCC"
+  )
+  colours.list <- colours
+  colours <- colours %>%
+    stack() %>% tibble::as_tibble() %>%
+    `colnames<-`(c("code.col", "label"))
+  
+  net.correct.labs <- net %>%
+    tidygraph::activate("nodes") %>% tidygraph::as_tibble() %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(name = ifelse(
+      label == "serum metabolome", 
+      metabs[metabs$Rvar == name, ]$var, 
+      name
+    )) %>%
+    dplyr::mutate(name = ifelse(
+      label == "urinary metabolome", 
+      metabu[metabu$Rvar == name, ]$var, 
+      name
+    )) %>%
+    dplyr::mutate(name = stringr::str_remove_all(name, "\""))
+  net.correct.labs <- dplyr::inner_join(net.correct.labs, shapes)
+  net.correct.labs <- dplyr::inner_join(net.correct.labs, colours)
+  net <- net %>%
+    tidygraph::activate(., what = "nodes") %>%
+    tidygraph::mutate(name = net.correct.labs$name) %>%
+    tidygraph::mutate(col = as.factor(net.correct.labs$code.col)) %>%
+    tidygraph::mutate(shap = as.factor(net.correct.labs$code.shape))
+  
   gg <- ggraph::ggraph(net, 
-                       layout = "kk") +
-    ggraph::geom_edge_link(alpha = 0.75, 
-                           mapping = aes(label = lab, 
-                                         width = abs(lab * 10), 
-                                         color = sig)) +
-    ggraph::geom_node_point(mapping = aes(shape = label, 
-                                          color = label), 
-                            size = 4) +
-    ggraph::geom_node_text(mapping = aes(label = name), 
-                           repel = TRUE, size = 5) +
+                       layout = "fr") +
+    ggraph::geom_node_point(mapping = aes(shape = label,  
+                                          fill = label), 
+                            size = 4, alpha = 0.85) +
     ggplot2::theme_classic() +
+    ggplot2::scale_fill_manual(values = colours.list) +
+    ggplot2::scale_shape_manual(values = shapes.list) +
     ggplot2::theme(axis.line = ggplot2::element_blank(), 
                    axis.title = ggplot2::element_blank(), 
                    axis.text = ggplot2::element_blank(), 
                    axis.ticks = ggplot2::element_blank(), 
                    legend.title = element_text(size = 25), 
                    legend.text = element_text(size = 22))
+  
+  if (is.null(center.node)) {
+    # Full, merged network: we do not add labels to edges and add
+    # labels only to nodes corresponding to exposures
+    gg <- gg +
+      ggraph::geom_edge_link(alpha = 0.75, 
+                             mapping = aes(width = abs(lab * 10), 
+                                           color = sig)) +
+      ggraph::geom_node_text(mapping = aes(label = name, 
+                                           filter = label == "exposure"), 
+                             repel = TRUE, size = 5)
+  } else {
+    # Merged, compound-centric network: we add all labels to edges and nodes
+    gg <- gg +
+      ggraph::geom_edge_link(alpha = 0.75, 
+                             mapping = aes(label = lab, 
+                                           width = abs(lab * 10), 
+                                           color = sig)) +
+      ggraph::geom_node_text(mapping = aes(label = name), 
+                             repel = TRUE, size = 5)
+  }
+  
   ggplot2::ggsave(paste0(path.save, type.net, "_", key.save, ".png"), 
                   dpi = 720/2, 
                   width = 20, height = 12)

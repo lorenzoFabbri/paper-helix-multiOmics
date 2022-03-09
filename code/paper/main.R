@@ -40,6 +40,10 @@ for (chem in all.exposures$exposure) {
             center.node = chem)
 }
 
+## Visualize largest "component" of merged network with heatmap
+load("../data/intermediate_res_ggm/merged_net.RData")
+plot.net.as.heatmap(res$mod_2.2.2.5.5$net)
+
 ##### Tables #####
 source("code/paper/tables.R")
 ## Creates table with population description

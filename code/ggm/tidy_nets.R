@@ -9,6 +9,23 @@ rm(list=ls())
 source("code/multivariate_analysis/dictionaries.R")
 
 ################################################################################
+##### Function to use RCy3 from GGM/tidygraph results #####
+export.to.rcy3 <- function(net) {
+  nodes.df <- net %>%
+    tidygraph::activate("nodes") %>% tidygraph::as_tibble() %>%
+    dplyr::select(name, label) %>%
+    `colnames<-`(c("id", "group"))
+  tidy.net <- tidy.graph(net)
+  edges.df <- tidy.net %>%
+    dplyr::select(name.x, name.y) %>%
+    `colnames<-`(c("source", "target"))
+  
+  net.df <- RCy3::createNetworkFromDataFrames(nodes.df, edges.df)
+  #RCy3::layoutNetwork('force-directed defaultSpringCoefficient=0.00001 defaultSpringLength=50 defaultNodeMass=5')
+}
+################################################################################
+
+################################################################################
 load("../data/intermediate_res_ggm/merged_net.RData")
 net <- res$mod_2.2.2.5.5$net
 num.ccs <- range(net %>% dplyr::as_tibble() %>% .$group)[2]
@@ -37,17 +54,18 @@ all.exposures$exposure <- toupper(all.exposures$exposure)
 net.nodes <- net %>% tidygraph::activate(., what = "nodes") %>%
   tidygraph::as_tibble() %>% dplyr::mutate(idx = seq.int(nrow(.))) %>%
   dplyr::mutate(label = as.character(label)) %>%
-  dplyr::rowwise() %>%
-  dplyr::mutate(class = ifelse(
-    label == "exposure", all.exposures[all.exposures$exposure == name, ]$class, 
-    ifelse(
-      label == "serum metabolome", metabs[metabs$Rvar == name, ]$Class, 
-      ifelse(
-        label == "proteome", "none", 
-        "none"
-      )
-    )
-  ))
+  dplyr::mutate(class = label)
+  # dplyr::rowwise() %>%
+  # dplyr::mutate(class = ifelse(
+  #   label == "exposure", all.exposures[all.exposures$exposure == name, ]$class, 
+  #   ifelse(
+  #     label == "serum metabolome", metabs[metabs$Rvar == name, ]$Class, 
+  #     ifelse(
+  #       label == "proteome", "none", 
+  #       "none"
+  #     )
+  #   )
+  # ))
 #####
 
 ##### Database EWAS results
@@ -60,6 +78,7 @@ file.remove(f)
 
 map.label.to.shape <- map.char.to.aes()[[1]]
 map.class.to.col <- map.char.to.aes()[[2]]
+map.layer.to.col <- map.char.to.aes()[[3]]
 
 ##### Iterate over connected components of merged network
 for (i in 1:num.ccs) {
@@ -130,21 +149,21 @@ for (i in 1:num.ccs) {
     
     # Tidy plot of module within current connected component
     gg.inner <- ggraph::ggraph(net.module, layout = "fr") +
-      ggforce::geom_mark_hull(mapping = aes(x = x, y = y, 
-                                            fill = class, 
-                                            filter = !(class %in% c("none", 
-                                                                    "phenols", 
-                                                                    "pesticides", 
-                                                                    "phthalates.high", 
-                                                                    "phthalates.low"))), 
-                              concavity = 1) +
+      # ggforce::geom_mark_hull(mapping = aes(x = x, y = y, 
+      #                                       fill = class, 
+      #                                       filter = !(class %in% c("none", 
+      #                                                               "phenols", 
+      #                                                               "pesticides", 
+      #                                                               "phthalates.high", 
+      #                                                               "phthalates.low"))), 
+      #                         concavity = 1) +
       ggraph::geom_edge_link(colour = "darkgrey", alpha = 0.75) +
       ggraph::geom_node_point(mapping = aes(shape = label, size = degree, 
-                                            color = class)) +
+                                            fill = label)) +
       ggraph::geom_node_text(mapping = aes(label = name), #filter = degree >= 5), 
                              repel = TRUE, size = 5) +
       ggplot2::theme_classic() +
-      ggplot2::scale_color_manual(values = map.class.to.col, drop = TRUE) +
+      ggplot2::scale_fill_manual(values = map.layer.to.col, drop = TRUE) +
       ggplot2::scale_shape_manual(values = map.label.to.shape, drop = TRUE) +
       ggplot2::theme(axis.line = ggplot2::element_blank(), 
                      axis.title = ggplot2::element_blank(), 
@@ -163,21 +182,22 @@ for (i in 1:num.ccs) {
   
   # Tidy plot of current connected component
   gg <- ggraph::ggraph(net, layout = "fr") +
-    ggforce::geom_mark_hull(mapping = aes(x = x, y = y, 
-                                          fill = class, 
-                                          filter = !(class %in% c("none", 
-                                                                  "phenols", 
-                                                                  "pesticides", 
-                                                                  "phthalates.high", 
-                                                                  "phthalates.low"))), 
-                            concavity = 1) +
+    # ggforce::geom_mark_hull(mapping = aes(x = x, y = y, 
+    #                                       fill = class, 
+    #                                       filter = !(class %in% c("none", 
+    #                                                               "phenols", 
+    #                                                               "pesticides", 
+    #                                                               "phthalates.high", 
+    #                                                               "phthalates.low"))), 
+    #                         concavity = 1) +
     ggraph::geom_edge_link(colour = "darkgrey", alpha = 0.75) +
     ggraph::geom_node_point(mapping = aes(shape = label, size = degree, 
-                                          color = class)) +
-    ggraph::geom_node_text(mapping = aes(label = name, filter = degree >= 5), 
+                                          fill = label)) +
+    ggraph::geom_node_text(mapping = aes(label = name, filter = label == "exposure"), 
                            repel = TRUE, size = 5) +
     ggplot2::theme_classic() +
-    ggplot2::scale_color_manual(values = map.class.to.col, drop = TRUE) +
+    #ggplot2::scale_fill_manual(values = map.class.to.col, drop = TRUE) +
+    ggplot2::scale_fill_manual(values = map.layer.to.col, drop = TRUE) +
     ggplot2::scale_shape_manual(values = map.label.to.shape, drop = TRUE) +
     ggplot2::theme(axis.line = ggplot2::element_blank(), 
                    axis.title = ggplot2::element_blank(), 

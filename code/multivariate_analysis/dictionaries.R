@@ -71,11 +71,11 @@ tidy.graph <- function(net) {
 # Returns named vectors for mapping classes and labels to colors and shapes
 map.char.to.aes <- function() {
   map.label.to.shape <- c(
-    exposure = 16, 
-    methylome = 3, 
-    `serum metabolome` = 15, 
-    `urinary metabolome` = 17, 
-    proteome = 18
+    exposure = 23, 
+    methylome = 21, 
+    `serum metabolome` = 25, 
+    `urinary metabolome` = 24, 
+    proteome = 22
   )
   map.class.to.col <- c(
     phthalates.high = "#9E0142", 
@@ -90,8 +90,15 @@ map.char.to.aes <- function() {
     biogenicamines = "#3288BD", 
     sugars = "#FFFFBF"
   )
+  map.layer.to.col <- c(
+    exposure = "#CCCCCC", 
+    methylome = "#66CCFF", 
+    `serum metabolome` = "#FF3333", 
+    `urinary metabolome` = "#FFCC00", 
+    proteome = "#FFCCCC"
+  )
   
-  return(list(map.label.to.shape, map.class.to.col))
+  return(list(map.label.to.shape, map.class.to.col, map.layer.to.col))
 }
 
 # Returns lists of variables for each -omic layer

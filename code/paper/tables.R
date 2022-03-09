@@ -86,6 +86,13 @@ tables.networks <- function(path.to.net, time.point, path.save) {
                                  strsplit(CHEBI, "/")[[1]][1], 
                                  CHEBI)) %>%
     dplyr::select(c(Rvar, var, Class, CHEBI))
+  metabu <- readRDS(file = paste0(path.data, "metabUrine_1A")) %>%
+    .$feature.data %>%
+    dplyr::mutate(CHEBI = as.character(CHEBI)) %>%
+    dplyr::mutate(CHEBI = ifelse(grepl("/", CHEBI), 
+                                 strsplit(CHEBI, "/")[[1]][1], 
+                                 CHEBI)) %>%
+    dplyr::select(c(Rvar, var, CHEBI))
   
   net <- get(load(path.to.net))
   if (!is.null(time.point)) {
@@ -138,11 +145,23 @@ tables.networks <- function(path.to.net, time.point, path.save) {
     tidygraph::as_tibble() %>% dplyr::mutate(idx = seq.int(nrow(.))) %>%
     dplyr::mutate(label = as.character(label)) %>%
     dplyr::rowwise() %>%
+    dplyr::mutate(name = ifelse(
+      label == "serum metabolome", 
+      metabs[metabs$Rvar == name, ]$var, 
+      name
+    )) %>%
+    dplyr::mutate(name = ifelse(
+      label == "urinary metabolome", 
+      metabu[metabu$Rvar == name, ]$var, 
+      name
+    )) %>%
+    dplyr::mutate(name = stringr::str_remove_all(name, "\"")) %>%
     dplyr::mutate(class = ifelse(
       label == "exposure", all.exposures[all.exposures$exposure == name, ]$class, 
       "none"
     ))
   net <- net %>%
+    tidygraph::mutate(name = as.factor(net.nodes$name)) %>%
     tidygraph::mutate(class = as.factor(net.nodes$class)) %>%
     tidygraph::to_undirected() %>%
     #tidygraph::mutate(hub.score = tidygraph::centrality_hub()) %>%
@@ -153,7 +172,7 @@ tables.networks <- function(path.to.net, time.point, path.save) {
     dplyr::rowwise() %>%
     dplyr::mutate(class = ifelse(
       label == "serum metabolome", 
-      metabs[metabs$Rvar == name, ]$Class, 
+      metabs[metabs$var == name, ]$Class, 
       ifelse(
         label == "exposure", 
         #all.exposures[all.exposures$exposure == name, ]$class, 
