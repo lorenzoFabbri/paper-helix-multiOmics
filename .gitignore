@@ -16,10 +16,15 @@
 *.jpeg
 *.jpg
 *.png
-results/
 data/
 @eaDir/
 .fuse_hidden00003c6c00000002
+results/compare_adjustments/
+results/ewaff*/
+results/focus_merged_ccs/
+results/ggm/
+results/images/
+results/pathways/
 
 # History files
 .Rhistory

@@ -1,6 +1,7 @@
 # Functions to generate data as input for MetaboAnalyst to perform
 # pathway analysis
 
+rm(list = ls())
 library(tidyverse)
 
 source("code/multivariate_analysis/dictionaries.R")
@@ -72,14 +73,53 @@ generate.list.mets <- function(chemical.class, time.point) {
   
   list.metabolites.clean <- list.metabolites %>%
     dplyr::mutate(var = dplyr::coalesce(var.x, var.y), .keep = "unused") %>%
-    dplyr::mutate(CHEBI = dplyr::coalesce(CHEBI.x, CHEBI.y), .keep = "unused") %>%
-    # Convert CHEBI to CID
-    # dplyr::mutate(pcid = webchem::cts_convert(query = paste0("CHEBI:", CHEBI), 
-    #                                           from = "chebi", to = "pubchem cid") %>%
-    #                 unname() %>% .[[1]] %>% .[1]) %>%
-    # Convert from CHEBI to KEGG
-    dplyr::mutate(kegg = webchem::cts_convert(query = paste0("CHEBI:", CHEBI), 
-                                              from = "chebi", to = "kegg") %>%
-                    unname() %>% .[[1]] %>% .[1])
+    dplyr::mutate(CHEBI = dplyr::coalesce(CHEBI.x, CHEBI.y), .keep = "unused")
+  # Convert CHEBI to CID
+  # dplyr::mutate(pcid = webchem::cts_convert(query = paste0("CHEBI:", CHEBI), 
+  #                                           from = "chebi", to = "pubchem cid") %>%
+  #                 unname() %>% .[[1]] %>% .[1]) %>%
+  # Convert from CHEBI to KEGG
+  # dplyr::mutate(kegg = webchem::cts_convert(query = paste0("CHEBI:", CHEBI), 
+  #                                           from = "chebi", to = "kegg") %>%
+  #                 unname() %>% .[[1]] %>% .[1])
   
+  list.for.metaboanalyst <- list.metabolites.clean %>%
+    #tidyr::unnest(chemical.name) %>%
+    dplyr::distinct(var, .keep_all = TRUE) %>%
+    tidyr::drop_na(var) %>% dplyr::select(var)
+  
+  # Merge with manually-created txt file of "expanded" chemical names (for those
+  # not founded by MetaboAnalyst)
+  mapping <- read.table("results/pathways/mapping_metabolites.txt", 
+                        header = TRUE, sep = ";") %>%
+    tibble::as_tibble()
+  list.for.metaboanalyst <- list.for.metaboanalyst %>%
+    dplyr::full_join(mapping, by = c("var" = "old"))
+  list.for.metaboanalyst$new <- ifelse(
+    is.na(list.for.metaboanalyst$new), 
+    list.for.metaboanalyst$var, list.for.metaboanalyst$new
+  )
+  list.for.metaboanalyst %>%
+    .$new %>% c() %>% noquote() %>% cat(., sep = "\n", 
+                                        file = paste0("results/pathways/", 
+                                                      "time", time.point, 
+                                                      "class_", chemical.class, 
+                                                      ".txt"))
+}
+
+chemicals <- c("phenols", "phthalates", "pesticides")
+time.points <- c(1, 2)
+#####
+#generate.list.mets(chemical.class = chemicals[1], time.point = time.points[1])
+#####
+for (time.point in time.points) {
+  for (chemical in chemicals) {
+    cat("\n=======================================================\n")
+    cat(paste0("Time point: ", time.point, " - Chemical class: ", 
+               chemical, ".\n"))
+    generate.list.mets(chemical.class = chemical, 
+                       time.point = time.point)
+    cat("=======================================================\n")
+    #readline(prompt = "Press [enter] to continue...")
+  }
 }
