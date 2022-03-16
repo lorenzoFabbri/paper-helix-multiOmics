@@ -309,7 +309,7 @@ plot.bootstrapping.nets <- function(path, path.save) {
     ggplot2::labs(x = "bootstrap iteration", 
                   y = "log_10(number of reproducible edges)") +
     ggplot2::scale_y_log10()
-  ggplot2::ggsave(filename = paste0(path.save, "repEdges_byIter.pdf"), 
+  ggplot2::ggsave(filename = paste0(path.save, "repEdges_byIter.png"), 
                   plot = plt, 
                   dpi = 720/2, 
                   width = 7, height = 5)
@@ -382,13 +382,13 @@ plot.bootstrapping.nets <- function(path, path.save) {
   }
   grid.t1 <- gridExtra::grid.arrange(grobs = all.plots$pcor.x %>% unname(), ncol = 2, 
                                      nrow = ceiling(length(all.plots$pcor.x) / 2))
-  ggplot2::ggsave(filename = paste0(path.save, "pcor_t1_boot.pdf"), 
+  ggplot2::ggsave(filename = paste0(path.save, "pcor_t1_boot.png"), 
                   plot = grid.t1, 
                   dpi = 720/2, 
                   width = 7, height = 15)
   grid.t2 <- gridExtra::grid.arrange(grobs = all.plots$pcor.y %>% unname(), ncol = 2, 
                                      nrow = ceiling(length(all.plots$pcor.y) / 2))
-  ggplot2::ggsave(filename = paste0(path.save, "pcor_t2_boot.pdf"), 
+  ggplot2::ggsave(filename = paste0(path.save, "pcor_t2_boot.png"), 
                   plot = grid.t2, 
                   dpi = 720/2, 
                   width = 7, height = 15)
@@ -413,7 +413,7 @@ plot.bootstrapping.nets <- function(path, path.save) {
     gtsummary::tbl_summary(include = -c("iteration")) %>%
     gtsummary::bold_labels() %>%
     gtsummary::as_gt() %>% gt::gtsave(., 
-                                      filename = "results/images/boot_desc.png", 
+                                      filename = "results/images/boot_desc.rtf", 
                                       zoom = 4, expand = 7)
 }
 
@@ -772,7 +772,10 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
                        layout = "fr") +
     ggraph::geom_node_point(mapping = aes(shape = label,  
                                           fill = label), 
-                            size = 4, alpha = 0.85) +
+                            size = ifelse(
+                              is.null(center.node), 4, 9
+                            ), 
+                            alpha = 0.85) +
     ggplot2::theme_classic() +
     ggplot2::scale_fill_manual(values = colours.list) +
     ggplot2::scale_shape_manual(values = shapes.list) +
@@ -799,9 +802,13 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
       ggraph::geom_edge_link(alpha = 0.75, 
                              mapping = aes(label = lab, 
                                            width = abs(lab * 10), 
-                                           color = sig)) +
+                                           color = sig, 
+                                           label_size = 7)) +
       ggraph::geom_node_text(mapping = aes(label = name), 
-                             repel = TRUE, size = 5)
+                             size = 9, 
+                             repel = TRUE, 
+                             nudge_y = 0.09, nudge_x = -0.05) +
+      ggplot2::theme(legend.position = "none")
   }
   
   ggplot2::ggsave(paste0(path.save, type.net, "_", key.save, ".png"), 

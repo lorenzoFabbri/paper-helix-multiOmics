@@ -69,8 +69,67 @@ tables.population.desc <- function() {
                                  by = "Period") %>%
     gtsummary::add_overall() %>%
     gtsummary::bold_labels() %>%
-    gtsummary::as_gt() %>% gt::gtsave(., filename = "results/images/pop_desc.png", 
+    gtsummary::as_gt() %>% gt::gtsave(., filename = "results/images/pop_desc.rtf", 
                                       zoom = 4, expand = 7)
+}
+
+##### Helper function for `tables.networks` to process networks
+.tables.networks <- function(net, time.point, 
+                             chem.classes, chem.class) {
+  if (!is.null(chem.class)) {
+    net.sub <- net %>%
+      tidygraph::filter(!(class %in% setdiff(chem.classes, chem.class)))
+  } else {
+    net.sub <- net
+  }
+  net.sub.old <- net.sub
+  net.sub <- tidy.graph(net.sub)
+  
+  df.filtered <- net.sub %>%
+    dplyr::select(-dplyr::any_of(c("class.x", "class.y", 
+                                   "pval.x", "pval.y", "pval", "prob"))) %>%
+    dplyr::mutate(dplyr::across(where(is.numeric), round, 3))
+  
+  if (is.null(time.point)) {
+    # Merged network
+    df.filtered <- df.filtered %>%
+      dplyr::arrange(name.x, name.y, label.x, label.y, 
+                     desc(pcor.x), desc(pcor.y)) %>%
+      `colnames<-`(c("node.a", "layer.a", "degree.a", 
+                     "node.b", "layer.b", "degree.b", 
+                     "pcor.a", "qval.a", "sign", "pcor.b", "qval.b")) %>%
+      dplyr::select(c(node.a, layer.a, degree.a, 
+                      node.b, layer.b, degree.b, 
+                      sign, 
+                      pcor.a, qval.a, 
+                      pcor.b, qval.b))
+    colnames(df.filtered) <- c("node.a", "layer.a", "degree.a", 
+                               "node.b", "layer.b", "degree.b", 
+                               "sign", 
+                               "pcor.t1", "qval.t1", "pcor.t2", "qval.t2")
+  } else {
+    # Time-specific network
+    df.filtered <- df.filtered %>%
+      dplyr::arrange(name.x, name.y, label.x, label.y, 
+                     desc(pcor)) %>%
+      `colnames<-`(c("node.a", "layer.a", "degree.a", 
+                     "node.b", "layer.b", "degree.b", 
+                     "pcor", "qval", "sign")) %>%
+      dplyr::select(c(node.a, layer.a, degree.a, 
+                      node.b, layer.b, degree.b, 
+                      sign, 
+                      pcor, qval))
+  }
+  
+  # Proportion of layer types by node
+  n.a <- df.filtered %>% dplyr::select(c(node.a, layer.a)) %>%
+    `colnames<-`(c("node", "layer"))
+  n.b <- df.filtered %>% dplyr::select(c(node.b, layer.b)) %>%
+    `colnames<-`(c("node", "layer"))
+  n.all <- dplyr::bind_rows(n.a, n.b) %>%
+    dplyr::distinct()
+  
+  return(list(df.filtered, n.all))
 }
 
 ##### Function to describe networks
@@ -215,79 +274,22 @@ tables.networks <- function(path.to.net, time.point, path.save) {
   map.label.to.shape <- map.char.to.aes()[[1]]
   map.class.to.col <- map.char.to.aes()[[2]]
   
-  # Create table for each chemical class
+  ##############################################################################
+  # Create table for each chemical class and for full network
+  ##############################################################################
   chem.classes <- unique(all.exposures$class)
   all.tables <- list()
   n.all <- list()
   for (chem.class in chem.classes) {
-    # Network containing chemicals belonging to only one chemical class (e.g., phenols)
-    net.sub <- net %>%
-      tidygraph::filter(!(class %in% setdiff(chem.classes, chem.class)))
-    net.sub.old <- net.sub
-    net.sub <- tidy.graph(net.sub)
-    
-    df.filtered <- net.sub %>%
-      #dplyr::filter((label.x == "exposure" & label.y != "exposure") | 
-      #                (label.x != "exposure" & label.y == "exposure")) %>%
-      dplyr::select(-dplyr::any_of(c("class.x", "class.y", 
-                                     "pval.x", "pval.y", "pval", "prob"))) %>%
-      dplyr::mutate(dplyr::across(where(is.numeric), round, 3))
-    
-    if (is.null(time.point)) {
-      # Merged network
-      df.filtered <- df.filtered %>%
-        dplyr::arrange(name.x, name.y, label.x, label.y, 
-                       desc(pcor.x), desc(pcor.y)) %>%
-        `colnames<-`(c("node.a", "layer.a", "degree.a", 
-                       "node.b", "layer.b", "degree.b", 
-                       "pcor.a", "qval.a", "sign", "pcor.b", "qval.b")) %>%
-        dplyr::select(c(node.a, layer.a, degree.a, 
-                        node.b, layer.b, degree.b, 
-                        sign, 
-                        pcor.a, qval.a, 
-                        pcor.b, qval.b))
-      colnames(df.filtered) <- c("node.a", "layer.a", "degree.a", 
-                                 "node.b", "layer.b", "degree.b", 
-                                 "sign", 
-                                 "pcor.t1", "qval.t1", "pcor.t2", "qval.t2")
-    } else {
-      # Time-specific network
-      df.filtered <- df.filtered %>%
-        dplyr::arrange(name.x, name.y, label.x, label.y, 
-                       desc(pcor)) %>%
-        `colnames<-`(c("node.a", "layer.a", "degree.a", 
-                       "node.b", "layer.b", "degree.b", 
-                       "pcor", "qval", "sign")) %>%
-        dplyr::select(c(node.a, layer.a, degree.a, 
-                        node.b, layer.b, degree.b, 
-                        sign, 
-                        pcor, qval))
-    }
-      
-    all.tables[[chem.class]] <- df.filtered
-    
-    # Proportion of layer types by node
-    n.a <- df.filtered %>% dplyr::select(c(node.a, layer.a)) %>%
-      `colnames<-`(c("node", "layer"))
-    n.b <- df.filtered %>% dplyr::select(c(node.b, layer.b)) %>%
-      `colnames<-`(c("node", "layer"))
-    n.all[[chem.class]] <- dplyr::bind_rows(n.a, n.b) %>%
-      dplyr::distinct()
-    
-    # Check that number of nodes/edges is same as in filtered graph
-    num.nodes <- length(igraph::V(tidygraph::as.igraph(net.sub.old)))
-    num.edges <- length(igraph::E(tidygraph::as.igraph(net.sub.old)))
-    print(paste0("Number of nodes: ", num.nodes, " - ", 
-                 nrow(n.all[[chem.class]]), "."))
-    print(paste0("Number of edges: ", num.edges, " - ", 
-                 nrow(df.filtered), "."))
-    # if (nrow(n.all[[chem.class]]) != num.nodes) {
-    #   stop(paste0("Number of nodes does not match for: ", chem.class))
-    #   }
-    # if (nrow(df.filtered) != num.edges) {
-    #   stop(paste0("Number of edges does not match for: ", chem.class))
-    # }
+    res.tmp <- .tables.networks(net = net, time.point = time.point, 
+                                chem.classes = chem.classes, 
+                                chem.class = chem.class)
+    all.tables[[chem.class]] <- res.tmp[[1]]
+    n.all[[chem.class]] <- res.tmp[[2]]
   }
+  full.net <- .tables.networks(net = net, time.point = time.point, 
+                               chem.classes = chem.classes, 
+                               chem.class = NULL)
   
   # Merge and save table results (description) to file
   ret.nodes <- gtsummary::tbl_summary(n.all %>%
@@ -295,6 +297,11 @@ tables.networks <- function(path.to.net, time.point, path.save) {
                                         dplyr::select(-c(node)), 
                                       by = column_label) %>%
     gtsummary::bold_labels()
+  overall <- full.net[[2]] %>% dplyr::select(-c(node)) %>%
+    gtsummary::tbl_summary() %>%
+    gtsummary::bold_labels()
+  ret.nodes <- gtsummary::tbl_merge(list(overall, ret.nodes), 
+                                    tab_spanner = FALSE)
   ret <- gtsummary::tbl_summary(all.tables %>%
                                   dplyr::bind_rows(.id = "column_label") %>%
                                   dplyr::mutate(layer.a = factor(layer.a)) %>%
@@ -304,13 +311,18 @@ tables.networks <- function(path.to.net, time.point, path.save) {
                                                    layer.a, layer.b)), 
                                 by = column_label) %>%
     gtsummary::bold_labels()
+  overall <- full.net[[1]] %>%
+    dplyr::select(-c(node.a, node.b, layer.a, layer.b)) %>%
+    gtsummary::tbl_summary() %>%
+    gtsummary::bold_labels()
+  ret <- gtsummary::tbl_merge(list(overall, ret), tab_spanner = FALSE)
   combined.res <- gtsummary::tbl_stack(tbls = list(ret, ret.nodes)) %>%
     gtsummary::as_gt() %>%
     gt::gtsave(file = paste0("results/images/desc_net", 
                              ifelse(
                                is.null(time.point), "Merged", time.point
                              ), 
-                             "_direct.png"))
+                             "_direct.rtf"))
   
   # Merge and save table results (individual edges) to file
   # Start from full, merged network
@@ -387,6 +399,22 @@ tables.networks <- function(path.to.net, time.point, path.save) {
     
     #ret <- ret %>% dplyr::select(-c(column_label))
     ret <- ret %>% dplyr::mutate(id = dplyr::row_number())
+    
+    ############################################################################
+    # Save sub-table with only mixed interaction, of which one must be an exposure
+    ret.mixed <- ret %>%
+      dplyr::filter((layer.a == "exposure" & layer.b != "exposure") | 
+                      (layer.b == "exposure" & layer.a != "exposure")) %>%
+      dplyr::select(-c(id)) %>%
+      dplyr::arrange(layer.a, layer.b, node.a, node.b, pcor.t1, pcor.t2)
+    pdf(paste0("results/images/mixedEdges_netMerged.pdf"), 
+        height = 7, width = 27)
+    gridExtra::grid.table(ret.mixed, rows = NULL)
+    dev.off()
+    write.csv(ret.mixed, file = "results/images/mixedEdges_netMerged.csv", 
+              row.names = FALSE)
+    ############################################################################
+    
     chunk = 20
     n <- nrow(ret)
     r <- rep(1:ceiling(n / chunk), each = chunk)[1:n]

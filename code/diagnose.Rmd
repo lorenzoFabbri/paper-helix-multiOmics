@@ -166,7 +166,7 @@ explore.data <- function(dat, params) {
 }
 
 time.point <- "_1A" # First visit
-to.save <- TRUE
+to.save <- FALSE
 
 exposome.clean <- explore.data(exposome, params = list(
   type = "e", 
