@@ -129,6 +129,14 @@ tables.population.desc <- function() {
   n.all <- dplyr::bind_rows(n.a, n.b) %>%
     dplyr::distinct()
   
+  # Add infomation on degree of nodes
+  old.dim <- nrow(n.all)
+  degree.nodes <- net.sub.old %>% tidygraph::as_tibble() %>%
+    dplyr::select(c(name, degree))
+  n.all <- dplyr::inner_join(n.all, degree.nodes, 
+                             by = c("node" = "name"))
+  if (nrow(n.all) != old.dim) { stop(call. = TRUE) }
+  
   return(list(df.filtered, n.all))
 }
 
@@ -300,6 +308,7 @@ tables.networks <- function(path.to.net, time.point, path.save) {
   overall <- full.net[[2]] %>% dplyr::select(-c(node)) %>%
     gtsummary::tbl_summary() %>%
     gtsummary::bold_labels()
+  overall.nodesAndEdges <- overall %>% gtsummary::add_n()
   ret.nodes <- gtsummary::tbl_merge(list(overall, ret.nodes), 
                                     tab_spanner = FALSE)
   ret <- gtsummary::tbl_summary(all.tables %>%
@@ -308,13 +317,18 @@ tables.networks <- function(path.to.net, time.point, path.save) {
                                   dplyr::mutate(layer.b = factor(layer.b)) %>%
                                   dplyr::mutate(sign = as.numeric(as.character(sign))) %>%
                                   dplyr::select(-c(node.a, node.b, 
-                                                   layer.a, layer.b)), 
+                                                   layer.a, layer.b, 
+                                                   degree.a, degree.b)), 
                                 by = column_label) %>%
     gtsummary::bold_labels()
   overall <- full.net[[1]] %>%
-    dplyr::select(-c(node.a, node.b, layer.a, layer.b)) %>%
+    dplyr::select(-c(node.a, node.b, layer.a, layer.b, 
+                     degree.a, degree.b)) %>%
     gtsummary::tbl_summary() %>%
-    gtsummary::bold_labels()
+    gtsummary::bold_labels() %>% gtsummary::add_n()
+  overall.nodesAndEdges <- gtsummary::tbl_stack(list(overall, 
+                                                     overall.nodesAndEdges), 
+                                                group_header = c("Edges", "Nodes"))
   ret <- gtsummary::tbl_merge(list(overall, ret), tab_spanner = FALSE)
   combined.res <- gtsummary::tbl_stack(tbls = list(ret, ret.nodes)) %>%
     gtsummary::as_gt() %>%
@@ -346,59 +360,32 @@ tables.networks <- function(path.to.net, time.point, path.save) {
                        "sign", 
                        "pcor.t1", "qval.t1", "pcor.t2", "qval.t2")
     
-    if (is.null(time.point)) {
-      ret <- ret %>%
-        dplyr::arrange(node.a, layer.a, node.b, layer.b, 
-                       sign, desc(pcor.t1), desc(qval.t1), 
-                       desc(pcor.t2), desc(qval.t2)) %>%
-        dplyr::select(-c(sign))
-    } else {
-      ret <- ret %>%
-        dplyr::arrange(node.a, layer.a, node.b, layer.b, 
-                       sign, desc(pcor), desc(qval)) %>%
-        dplyr::select(-c(sign))
-    }
+    ret <- ret %>%
+      dplyr::arrange(node.a, layer.a, node.b, layer.b, 
+                     sign, desc(pcor.t1), desc(qval.t1), 
+                     desc(pcor.t2), desc(qval.t2)) %>%
+      dplyr::select(-c(sign))
     
     # Add genes associated to CpG sites
     ewas.cpgs <- data.table::fread("../data/methylome/results.txt") %>%
-      tibble::as_tibble()
-    for (idx in 1:nrow(ret)) {
-      cpg <- ifelse(
-        ret[idx, ]$layer.a == "methylome", 
-        ret[idx, ]$node.a[[1]], 
-        ifelse(
-          ret[idx, ]$layer.b == "methylome", 
-          ret[idx, ]$node.b[[1]], 
-          "none"
-        )
-      )
-      
-      if (cpg != "none") {
-        genes <- ewas.cpgs[ewas.cpgs$CpG == cpg, ]$Gene
-        genes <- genes[!grepl("-", genes)]
-        if (length(genes) > 1) {
-          genes <- paste(unique(genes), collapse = ";")
-        } else { genes <- "-" }
-        
-        ret[idx, "genes"] = genes
-      } else { ret[idx, "genes"] <- "" }
-    } # End loop to add genes
-    
-    # theme.table <- gridExtra::ttheme_default(core = list(
-    #   bg_params = list(
-    #     fill = c(rep(c("#F0F0F0"), 
-    #                  length.out = dim(ret %>% dplyr::filter(column_label == "pesticides"))[1]), 
-    #              rep(c("#E0E0E0"), 
-    #                  length.out = dim(ret %>% dplyr::filter(column_label == "phenols"))[1]), 
-    #              rep(c("#F0F0F0"), 
-    #                  length.out = dim(ret %>% dplyr::filter(column_label == "phthalates.high"))[1]), 
-    #              rep(c("#E0E0E0"), 
-    #                  length.out = dim(ret %>% dplyr::filter(column_label == "phthalates.low"))[1]))
-    #   )
-    # ))
+      tibble::as_tibble() %>%
+      dplyr::select(c("CpG", "Gene"))
+    old.dim <- nrow(ret)
+    ret <- dplyr::left_join(ret, ewas.cpgs, by = c("node.a" = "CpG"))
+    ret <- dplyr::left_join(ret, ewas.cpgs, by = c("node.b" = "CpG"))
+    ret <- ret %>% dplyr::distinct()
+    if (nrow(ret) != old.dim) { stop(call. = TRUE) }
+    if (nrow(dplyr::distinct(ret, node.a, node.b, layer.a, layer.b)) != nrow(ret)) {
+      stop(call. = TRUE)
+    }
     
     #ret <- ret %>% dplyr::select(-c(column_label))
     ret <- ret %>% dplyr::mutate(id = dplyr::row_number())
+    ret[is.na(ret$Gene.x), ]$Gene.x <- ""
+    ret[is.na(ret$Gene.y), ]$Gene.y <- ""
+    ret <- ret %>%
+      tidyr::unite(genes, c(Gene.x, Gene.y), sep = ";")
+    ret[ret$genes == ";", ]$genes <- ""
     
     ############################################################################
     # Save sub-table with only mixed interaction, of which one must be an exposure
@@ -430,4 +417,78 @@ tables.networks <- function(path.to.net, time.point, path.save) {
     })
     dev.off()
   } # End if for table of edges
+  
+  ##############################################################################
+  # Merge and save table results (individual edges) to file
+  # Start from full, time-specific networks and filter "top" associations
+  ##############################################################################
+  if (!is.null(time.point)) {
+    ret <- tidy.graph(net) %>%
+      dplyr::select(-dplyr::any_of(c("class.x", "class.y", 
+                                     "pval", "prob"))) %>%
+      dplyr::mutate(dplyr::across(where(is.numeric), round, 3)) %>%
+      dplyr::arrange(name.x, name.y, label.x, label.y, 
+                     desc(pcor)) %>%
+      `colnames<-`(c("node.a", "layer.a", "degree.a", 
+                     "node.b", "layer.b", "degree.b", 
+                     "pcor", "qval", "sign")) %>%
+      dplyr::select(c(node.a, layer.a, degree.a, 
+                      node.b, layer.b, degree.b, 
+                      sign, 
+                      pcor, qval))
+    
+    ret <- ret %>%
+      dplyr::arrange(node.a, layer.a, node.b, layer.b, 
+                     sign, desc(pcor), desc(qval)) %>%
+      dplyr::select(-c(sign))
+    
+    # Add genes associated to CpG sites
+    ewas.cpgs <- data.table::fread("../data/methylome/results.txt") %>%
+      tibble::as_tibble() %>%
+      dplyr::select(c("CpG", "Gene"))
+    old.dim <- nrow(ret)
+    ret <- dplyr::left_join(ret, ewas.cpgs, by = c("node.a" = "CpG"))
+    ret <- dplyr::left_join(ret, ewas.cpgs, by = c("node.b" = "CpG"))
+    ret <- ret %>% dplyr::distinct()
+    if (nrow(ret) != old.dim) { stop(call. = TRUE) }
+    if (nrow(dplyr::distinct(ret, node.a, node.b, layer.a, layer.b)) != nrow(ret)) {
+      stop(call. = TRUE)
+    }
+    
+    ret <- ret %>% dplyr::mutate(id = dplyr::row_number())
+    ret[is.na(ret$Gene.x), ]$Gene.x <- ""
+    ret[is.na(ret$Gene.y), ]$Gene.y <- ""
+    ret <- ret %>%
+      tidyr::unite(genes, c(Gene.x, Gene.y), sep = ";")
+    ret[ret$genes == ";", ]$genes <- ""
+    
+    ############################################################################
+    # Save sub-table with only mixed interaction, of which one must be an exposure
+    ############################################################################
+    ret.mixed <- ret %>%
+      dplyr::filter((layer.a == "exposure" & layer.b != "exposure") | 
+                      (layer.b == "exposure" & layer.a != "exposure")) %>%
+      dplyr::select(-c(id, genes)) %>%
+      dplyr::arrange(desc(abs(pcor)), layer.a, layer.b, node.a, node.b)
+    write.csv(ret.mixed, file = paste0("results/images/mixedEdges_net", 
+                                       time.point, ".csv"), 
+              row.names = FALSE)
+    
+    chunk = 20
+    n <- nrow(ret.mixed)
+    r <- rep(1:ceiling(n / chunk), each = chunk)[1:n]
+    pdf(paste0("results/images/edges_net", 
+               ifelse(
+                 is.null(time.point), "Merged", time.point
+               ), 
+               "_mixed.pdf"), 
+        height = 7, width = 27)
+    lapply(split(ret.mixed, r), function(d) {
+      grid::grid.newpage()
+      gridExtra::grid.table(d, rows = NULL)
+    })
+    dev.off()
+  } # End if for table of edges for time-specific networks
+  
+  return(overall.nodesAndEdges)
 }

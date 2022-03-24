@@ -64,18 +64,48 @@ plt <- ggplot2::ggplot(data = df, mapping = aes(x = Impact,
 ggplot2::ggsave(filename = "results/images/pathway_enrichment.png", 
                 height = 15, width = 15, dpi = 720, plot = plt)
 
+################################################################################
 ##### Tables #####
+################################################################################
 source("code/paper/tables.R")
 ## Creates table with population description
 tables.population.desc()
 
 ## Describes networks
-tables.networks(path.to.net = "../data/intermediate_res_ggm/merged_net.RData", 
+merged <- tables.networks(path.to.net = "../data/intermediate_res_ggm/merged_net.RData", 
                 time.point = NULL, path.save = "results/images/")
-tables.networks(path.to.net = "../data/intermediate_res_ggm/processed_ggms.RData", 
+net1 <- tables.networks(path.to.net = "../data/intermediate_res_ggm/processed_ggms.RData", 
                 time.point = 1, path.save = "results/images/")
-tables.networks(path.to.net = "../data/intermediate_res_ggm/processed_ggms.RData", 
+net2 <- tables.networks(path.to.net = "../data/intermediate_res_ggm/processed_ggms.RData", 
                 time.point = 2, path.save = "results/images/")
+# Table describing networks for T1, T2 and merged (no sub-graphs for chemicals)
+gtsummary::tbl_merge(list(net1, net2), 
+                     tab_spanner = c("A", "B")) %>%
+  gtsummary::as_gt() %>%
+  gt::gtsave(file = paste0("results/images/desc_allTimesPaper.rtf"))
+merged %>%
+  gtsummary::as_gt() %>%
+  gt::gtsave(file = paste0("results/images/desc_mergedPaper.rtf"))
+
+# Compare top, mixed associations across time points (from time-specific 
+# networks)
+assoc1 <- read.csv("results/images/mixedEdges_net1.csv") %>% tibble::as_tibble() %>%
+  dplyr::mutate(visit = "A")
+assoc2 <- read.csv("results/images/mixedEdges_net2.csv") %>% tibble::as_tibble() %>%
+  dplyr::mutate(visit = "B")
+N = 5
+dplyr::bind_rows(assoc1[1:N, ], assoc2[1:N, ]) %>%
+  write.csv("results/images_locked/top5Mixed_timeNets.csv", 
+            quote = FALSE, row.names = FALSE)
+assoc.all.a <- dplyr::full_join(assoc1, assoc2, by = c("node.a" = "node.a", 
+                                                      "node.b" = "node.b", 
+                                                      "layer.a" = "layer.a", 
+                                                      "layer.b" = "layer.b"))
+assoc.all.b <- dplyr::full_join(assoc1, assoc2, by = c("node.a" = "node.b", 
+                                                      "node.b" = "node.a", 
+                                                      "layer.a" = "layer.b", 
+                                                      "layer.b" = "layer.a"))
+assoc.all <- dplyr::bind_rows(assoc.all.a, assoc.all.b)
 
 ## Tables summarizing difference among time-specific and merged networks
 merged.net <- get(load("../data/intermediate_res_ggm/merged_net.RData"))
