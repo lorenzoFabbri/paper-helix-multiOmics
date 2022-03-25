@@ -64,6 +64,43 @@ plt <- ggplot2::ggplot(data = df, mapping = aes(x = Impact,
 ggplot2::ggsave(filename = "results/images/pathway_enrichment.png", 
                 height = 15, width = 15, dpi = 720, plot = plt)
 
+## Distribution of partial correlations and histogram of p-values for
+## processed networks
+unproc.net1 <- readRDS("../data/correlations/network_raw_mod_2.2.1.5.5")
+unproc.net2 <- readRDS("../data/correlations/network_raw_mod_2.2.2.5.5")
+unproc.nets <- list(unproc.net1, unproc.net2) %>%
+  dplyr::bind_rows(.id = "visit") %>%
+  dplyr::mutate(visit = ifelse(visit == 1, "A", "B"))
+
+tmp <- unproc.nets %>%
+  ggplot2::ggplot(mapping = aes(x = pcor, 
+                                fill = visit)) +
+  ggplot2::geom_histogram(alpha = 0.4, position = "identity", 
+                          show.legend = TRUE) +
+  ggplot2::facet_wrap(~ visit) +
+  ggplot2::theme_light() +
+  ggplot2::theme(strip.background = element_blank(), 
+                 panel.border = element_blank(), 
+                 panel.grid = element_blank(), 
+                 axis.line = element_line()) +
+  ggplot2::scale_y_continuous(expand = c(0, 0)) +
+  ggplot2::labs(x = "partial correlations")
+tmp.pvals <- unproc.nets %>%
+  ggplot2::ggplot(mapping = aes(x = pval, 
+                                fill = visit)) +
+  ggplot2::geom_histogram(alpha = 0.4, position = "identity", 
+                          show.legend = FALSE) +
+  ggplot2::facet_wrap(~ visit) +
+  ggplot2::theme_light() +
+  ggplot2::theme(strip.background = element_blank(), 
+                 panel.border = element_blank(), 
+                 panel.grid = element_blank(), 
+                 axis.line = element_line()) +
+  ggplot2::labs(x = "p-values")
+plt <- egg::ggarrange(tmp.pvals, tmp, ncol = 1, heights = c(0.3, 1.2))
+ggplot2::ggsave(filename = "results/final_material_paper/pcorsPvals.png", 
+                height = 10, width = 15, dpi = 720, plot = plt)
+
 ################################################################################
 ##### Tables #####
 ################################################################################
