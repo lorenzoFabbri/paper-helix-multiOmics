@@ -306,6 +306,7 @@ plot.bootstrapping.nets <- function(path, path.save) {
     ggplot2::ggplot() +
     ggplot2::geom_point(mapping = aes(x = iteration, 
                                       y = num.edges)) +
+    ggplot2::theme_minimal() +
     ggplot2::labs(x = "bootstrap iteration", 
                   y = "log_10(number of reproducible edges)") +
     ggplot2::scale_y_log10()

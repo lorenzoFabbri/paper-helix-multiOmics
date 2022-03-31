@@ -176,3 +176,41 @@ summary.nets[["network"]] <- c("merged", "T1", "T2")
 summary.nets <- dplyr::relocate(summary.nets, "network") %>%
   gt::gt() %>%
   gt::gtsave(filename = "results/images/comparison_nets.rtf")
+
+##### Convert csv files for paper to rtf files to be added to all_tables file
+read.csv("results/final_material_paper/edge_countTable.csv") %>%
+  tibble::as_tibble() %>%
+  `colnames<-`(c("layer node x", "layer node y", "n", "p", 
+                 "n A", "p A", "n B", "p B", "average change (%)")) %>%
+  gt::gt() %>%
+  gt::tab_style(gt::cell_text(weight = "bold"), 
+                locations = gt::cells_column_labels()) %>%
+  gt::cols_align(align = "center") %>%
+  gt::gtsave(., filename = "results/final_material_paper/edge_countTable.rtf", 
+             zoom = 4, expand = 7)
+
+read.csv("results/final_material_paper/top5Mixed_timeNets.csv", 
+         header = TRUE, check.names = FALSE) %>%
+  tibble::as_tibble() %>%
+  `colnames<-`(c("node x", "layer x", "degree x", 
+                 "node y", "layer y", "degree y", 
+                 "pcor", "qval", "visit")) %>%
+  gt::gt() %>%
+  gt::tab_style(gt::cell_text(weight = "bold"), 
+                locations = gt::cells_column_labels()) %>%
+  gt::cols_align(align = "center") %>%
+  gt::gtsave(., filename = "results/final_material_paper/top5Mixed_timeNets.rtf", 
+             zoom = 4, expand = 7)
+
+read.csv("results/final_material_paper/mixedEdges_netMerged_locked.csv", 
+         header = TRUE, check.names = FALSE) %>%
+  tibble::as_tibble() %>%
+  `colnames<-`(c("chemical class", "chemical", "omic layer", 
+                 "omic feature", "pcor A", "pcor B", 
+                 "qval A", "qval B", "genes")) %>%
+  gt::gt() %>%
+  gt::tab_style(gt::cell_text(weight = "bold"), 
+                locations = gt::cells_column_labels()) %>%
+  gt::cols_align(align = "center") %>%
+  gt::gtsave(., filename = "results/final_material_paper/mixedEdges_netMerged_locked.rtf", 
+             zoom = 4, expand = 7)
