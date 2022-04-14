@@ -101,6 +101,50 @@ plt <- egg::ggarrange(tmp.pvals, tmp, ncol = 1, heights = c(0.3, 1.2))
 ggplot2::ggsave(filename = "results/final_material_paper/pcorsPvals.png", 
                 height = 10, width = 15, dpi = 720, plot = plt)
 
+## Distribution of types of edges by chemical class for merged network
+all.exposures <- dict.exposure.groups() %>%
+  stack() %>% tibble::as_tibble() %>%
+  `colnames<-`(c("exposure", "class")) %>%
+  dplyr::mutate(class = as.character(class)) %>%
+  dplyr::mutate(class = substr(class, 1, nchar(class) - 1)) %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(class = ifelse(
+    class %in% c("phthalates.low", "phthalates.high"), 
+    "phthalates", class
+  )) %>% dplyr::mutate(exposure = toupper(exposure))
+merged.net <- get(load("../data/intermediate_res_ggm/merged_net.RData"))
+merged.net <- tidy.graph(merged.net$mod_2.2.2.5.5$net)
+merged.net <- dplyr::left_join(merged.net, all.exposures, 
+                               by = c("name.x" = "exposure"))
+merged.net <- dplyr::left_join(merged.net, all.exposures, 
+                               by = c("name.y" = "exposure"))
+merged.net <- merged.net %>%
+  dplyr::mutate(chem.class = dplyr::coalesce(class.x, class.y)) %>%
+  dplyr::select(-c(class.x, class.y)) %>%
+  dplyr::mutate(chem.class = as.factor(chem.class))
+list.pies <- list()
+for (chem in levels(merged.net$chem.class)) {
+  df.tmp <- merged.net %>%
+    dplyr::filter(chem.class %in% c(NA, chem)) %>%
+    dplyr::select(name.x, name.y, label.x, label.y)
+  df.tmp <- tibble::tibble(node = c(df.tmp$name.x, df.tmp$name.y), 
+                           label = c(df.tmp$label.x, df.tmp$label.y)) %>%
+    dplyr::filter(label != "exposure") %>%
+    dplyr::distinct() %>%
+    dplyr::group_by(label) %>% dplyr::summarise(freq = n()) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(perc = round(freq / sum(freq), 2)) %>%
+    dplyr::mutate(perc = scales::percent(perc))
+  pie <- ggplot2::ggplot(df.tmp, mapping = aes(x = "", 
+                                               y = freq, fill = label)) +
+    ggplot2::geom_bar(width = 1, stat = "identity") +
+    ggplot2::geom_text(aes(label = perc), 
+                       position = ggplot2::position_stack(vjust = 0.5)) +
+    ggplot2::coord_polar(theta = "y", start = 0) +
+    ggplot2::theme_void() + ggplot2::scale_fill_brewer()
+  list.pies <- append(list.pies, list(pie))
+}
+
 ################################################################################
 ##### Tables #####
 ################################################################################
