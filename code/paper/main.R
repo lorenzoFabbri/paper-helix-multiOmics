@@ -145,6 +145,34 @@ for (chem in levels(merged.net$chem.class)) {
   list.pies <- append(list.pies, list(pie))
 }
 
+## Code to convert Table 3 to figure(s)
+counts <- read.csv("results/final_material_paper_v2/edge_countTable.csv") %>%
+  tibble::as_tibble() %>%
+  dplyr::select(layer.node.x, 
+                layer.node.y, 
+                n, n.A, n.B, avg.pc) %>%
+  tidyr::pivot_longer(cols = starts_with("n"), 
+                      names_to = "n", values_to = "count") %>%
+  tidyr::unite("edge_type", layer.node.x:layer.node.y, 
+               remove = TRUE, sep = "-") %>%
+  dplyr::mutate(n = ifelse(n == "n", "merged", 
+                           ifelse(n == "n.A", "visit A", "visit B"))) %>%
+  dplyr::mutate(avg.pc = paste0(avg.pc, "%"))
+plt <- ggplot2::ggplot(data = counts, mapping = aes(x = edge_type, 
+                                                    y = count, 
+                                                    fill = n)) +
+  ggplot2::geom_col(position = "dodge") +
+  ggplot2::theme_light() +
+  ggplot2::scale_y_continuous(expand = c(0, 0)) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, 
+                                                     hjust = 1)) +
+  ggplot2::labs(x = "", y = "counts", fill = "network") +
+  ggplot2::geom_text(aes(label = ifelse(n == "merged", avg.pc, "")), 
+                     position = ggplot2::position_dodge(width = 0.9), 
+                     color = "black", vjust = -0.3)
+ggplot2::ggsave(filename = "results/final_material_paper_v2/barplots_countsEdges.png", 
+                height = 10, width = 15, dpi = 720, plot = plt)
+
 ################################################################################
 ##### Tables #####
 ################################################################################
