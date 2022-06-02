@@ -67,8 +67,10 @@ plot.net.as.heatmap <- function(net) {
                    axis.text.y = element_text(size = 2), 
                    axis.title.x = element_blank(), 
                    axis.title.y = element_blank(), 
-                   panel.spacing = unit(0.05, "lines"))
-  ggplot2::ggsave(filename = "results/images/heatmap_adj_mergedNet.png", 
+                   panel.spacing = unit(0.05, "lines"), 
+                   strip.text.x = ggplot2::element_text(size = 11), 
+                   strip.text.y = ggplot2::element_text(size = 7))
+  ggplot2::ggsave(filename = "results/final_material_paper_v2/heatmap_adj_mergedNet.png", 
                   height = 15, width = 15, dpi = 720, plot = plt)
 }
 
@@ -784,8 +786,8 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
                    axis.title = ggplot2::element_blank(), 
                    axis.text = ggplot2::element_blank(), 
                    axis.ticks = ggplot2::element_blank(), 
-                   legend.title = element_text(size = 25), 
-                   legend.text = element_text(size = 22))
+                   legend.title = element_text(size = 27), 
+                   legend.text = element_text(size = 24))
   
   if (is.null(center.node)) {
     # Full, merged network: we do not add labels to edges and add
@@ -796,7 +798,8 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
                                            color = sig)) +
       ggraph::geom_node_text(mapping = aes(label = name, 
                                            filter = label == "exposure"), 
-                             repel = TRUE, size = 5)
+                             repel = TRUE, force = 70, 
+                             size = 7)
   } else {
     # Merged, compound-centric network: we add all labels to edges and nodes
     gg <- gg +
@@ -804,9 +807,9 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
                              mapping = aes(label = lab, 
                                            width = abs(lab * 10), 
                                            color = sig, 
-                                           label_size = 7)) +
+                                           label_size = 8)) +
       ggraph::geom_node_text(mapping = aes(label = name), 
-                             size = 9, 
+                             size = 10, 
                              repel = TRUE, 
                              nudge_y = 0.09, nudge_x = -0.05) +
       ggplot2::theme(legend.position = "none")
