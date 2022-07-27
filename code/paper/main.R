@@ -196,8 +196,40 @@ ggplot2::ggsave(filename = "results/final_material_paper_v2/barplots_countsEdges
 ##### Tables #####
 ################################################################################
 source("code/paper/tables.R")
+source("code/multivariate_analysis/dictionaries.R")
+source("code/multivariate_analysis/preprocess.R")
 ## Creates table with population description
 tables.population.desc()
+
+## Summary statistics of exposures for the 2 visits
+params <- list()
+path.data <- "../data/"
+scale.new <- list(perform = TRUE, group = "none", 
+                  method = "autoscale")
+ret.exp <- list()
+for (time.point in 1:2) {
+  params$time.point <- time.point
+  exposome <- readRDS(file = paste0(path.data, "exposome_1", 
+                                    ifelse(params$time.point == 1, 
+                                           "A", "B"))) %>%
+    .$data %>% tibble::as_tibble() %>%
+    dplyr::mutate(HelixID = from.sample.to.helix(SampleID)) %>%
+    dplyr::select(-c(SampleID))
+  exposome <- scale.by.group(data = exposome, group = scale.new$group, 
+                             start = 1, end = 3, method = scale.new$method)
+  exposome <- exposome %>%
+    dplyr::ungroup() %>%
+    dplyr::select(-c(HelixID, group))
+  colnames(exposome) <- colnames(exposome) %>%
+    stringr::str_replace_all(., "log.", "") %>%
+    stringr::str_replace_all(., "_e", "")
+  
+  summ <- exposome %>%
+    gtsummary::tbl_summary(
+      digits = gtsummary::all_continuous() ~ 2
+    )
+  ret.exp[[time.point]] <- summ
+} # End loop over time points for summary exposures
 
 ## Describes networks
 merged <- tables.networks(path.to.net = "../data/intermediate_res_ggm/merged_net.RData", 
