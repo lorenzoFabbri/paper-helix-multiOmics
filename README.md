@@ -1,6 +1,7 @@
 # Childhood exposure to non-persistent endocrine disrupting chemicals and multi-omic markers: a repeated-measures panel study
 
 Repository containing the code to reproduce the results of the first paper of my PhD.
+DOI: TODO.
 
 ## Abstract
 *Background*: Individuals are exposed to multiple environmental pollutants with endocrine disrupting activity (endocrine disruptors, EDCs) and the early stages of life are recognized to be particularly susceptible to these stressors. Previous studies have focused on identifying molecular signatures associated with EDCs to elucidate potential mechanisms, but few have integrated multiple omics layers. We aimed to identify multi-omic signatures associated with childhood exposure to non-persistent EDCs using an integrative network approach.
@@ -15,11 +16,17 @@ Repository containing the code to reproduce the results of the first paper of my
 * `code/`
   * `ggm/`
     * `ggm.R`: main functions to fit GGMs to data
+      * `main.pipeline.ggm()`: sets parameters (e.g., scaling method) and calls fitting functions (`perform.analysis()` and `fit.ggm()`)
+      * `perform.analysis()`: loads data and covariates taking care of right visit and calls main fitting function (`fit.ggm()`)
+      * `fit.ggm()`: adjusts for covariates, transforms data, computes correlations based on chosen method (e.g., `corpcor`)
+      * `process.ggms()`: computes p-values using `GeneNet` and filters networks based on chosen method (e.g., probability)
+      * `net.properties()`: computes simple properties of the fitted GGMs
+      * `merge.networks()`: merges visit-specific networks to obtain the *merged network*
   * `hpc/`
     * `scripts_hpc.R`: driver script to fit GGMs to data and perform bootstrapping
   * `methylome/`: functions to pre-process methylation data and perform EWAS
     * `main.R`: script to load results EWAS and find common CpG sites across visits
-    * `methylome.R`: main functions to run EWAS using `ewaff` (the main function being `methylome.ewaff`)
+    * `methylome.R`: main functions to run EWAS using `ewaff` (the main function being `methylome.ewaff()`)
     * `methylomeRaw.R`: script to pre-process methylation data with `minfi` and write to disk
     * `run_methylome1.R`, `run_methylome2.R`: driver scripts to run EWAS by visit
   * `multivariate_analysis/`
