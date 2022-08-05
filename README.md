@@ -1,3 +1,32 @@
-# Exposure to non-persistent endocrine disrupting chemicals and metabolic and proteomic markers in the child panel
-Repository for the (1st) paper of my PhD on Multi-Omics Data from HELIX (child panel).
+# Childhood exposure to non-persistent endocrine disrupting chemicals and multi-omic markers: a repeated-measures panel study
 
+Repository containing the code to reproduce the results of the first paper of my PhD.
+
+## Abstract
+*Background*: Individuals are exposed to multiple environmental pollutants with endocrine disrupting activity (endocrine disruptors, EDCs) and the early stages of life are recognized to be particularly susceptible to these stressors. Previous studies have focused on identifying molecular signatures associated with EDCs to elucidate potential mechanisms, but few have integrated multiple omics layers. We aimed to identify multi-omic signatures associated with childhood exposure to non-persistent EDCs using an integrative network approach.
+
+*Methods*: We used data from the HELIX (Human Early-Life Exposome) Child Panel Study, which included 152 children aged 6 to 11. Children were followed for 2 weeks 6 months apart. Twenty-two non-persistent EDCs (10 phthalate metabolites, 7 phenols, and 5 organophosphate pesticide metabolites) were measured in the 2 weekly pools of 15 urine samples each, to account for their intra-individual variability. Multi-omic profiles (methylome, serum and urinary metabolome, proteome) were measured in blood and in a pool of 2 urine samples collected at the end of each week. We developed Gaussian Graphical Models (GGMs) based on shrinkage estimates of pairwise partial correlations between EDCs and covariate-adjusted molecular features in each week. The obtained networks for the two visits were merged in order to identify reproducible associations.
+
+*Results*: The visit-specific networks included 4,083 and 4,908 edges of comparable strength and statistical significance. Most of the reproducible associations across visits included features of the same layer. Among the mixed associations, those between exposures and either proteins or urinary metabolites showed the highest reproducibility scores. The reproducible inter-layer associations were corroborated with data from the literature. Among the most significant, we found associations between the organophosphate pesticide diethyl phosphate and serotonin, triclosan and serotonin, mono‑4‑methyl‑7‑hydroxyoctyl phthalate and kynurenine, and triclosan and leptin.
+
+*Conclusions*: Through partial correlation network analyses, repeat time points and weekly EDC exposure assessment, we identified several biologically relevant molecular signatures related to non-persistent EDC exposure in childhood.
+
+## Structure of the repository
+* `code/`
+  * `ggm/`
+  * `hpc/`
+  * `methylome/`: functions to pre-process methylation data and perform EWAS
+    * `main.R`:
+    * `methylome.R`:
+    * `methylomeRaw.R`:
+    * `run_methylome1.R`, `run_methylome2.R`:
+  * `multivariate_analysis/`
+    * `dictionaries.R`: helper functions and dictionaries (e.g., mapping to chemical classes to color for plots, list of confounders)
+    * `model.R`: helper functions to perform 2-stage residual-outcome regression to adjust omics for confounders
+    * `preprocess.R`: helper functions to transform the data (scaling of exposures and omics)
+  * `paper/`: functions to reproduce figures (`images.R`) and tables (`tables.R`) from the manuscript
+    * `main.R` is the driver script to generate them
+  * scripts
+    * `diagnose.Rmd`: initial pre-processing of exposure and omics data by visit (tidying column names, imputation of missing exposures); creation of metadata (i.e., covariates); saving of datasets to disk
+* `results/`
+  * `final_material_paper_v2/`: material (i.e., figures and tables) that appear in the manuscript.
