@@ -14,12 +14,14 @@ Repository containing the code to reproduce the results of the first paper of my
 ## Structure of the repository
 * `code/`
   * `ggm/`
+    * `ggm.R`: main functions to fit GGMs to data
   * `hpc/`
+    * `scripts_hpc.R`: driver script to fit GGMs to data and perform bootstrapping
   * `methylome/`: functions to pre-process methylation data and perform EWAS
-    * `main.R`:
-    * `methylome.R`:
-    * `methylomeRaw.R`:
-    * `run_methylome1.R`, `run_methylome2.R`:
+    * `main.R`: script to load results EWAS and find common CpG sites across visits
+    * `methylome.R`: main functions to run EWAS using `ewaff` (the main function being `methylome.ewaff`)
+    * `methylomeRaw.R`: script to pre-process methylation data with `minfi` and write to disk
+    * `run_methylome1.R`, `run_methylome2.R`: driver scripts to run EWAS by visit
   * `multivariate_analysis/`
     * `dictionaries.R`: helper functions and dictionaries (e.g., mapping to chemical classes to color for plots, list of confounders)
     * `model.R`: helper functions to perform 2-stage residual-outcome regression to adjust omics for confounders
