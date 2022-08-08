@@ -12,8 +12,17 @@ visualize.common.cpgs(path = "results/ewaff_win_sva/",
                       threshold = 0.2)
 
 ## Visualize results of bootstrapping merged GGM
-plot.bootstrapping.nets(path = "results/ggm/paper_boot/", 
-                        path.save = "results/images/")
+ret <- plot.bootstrapping.nets(path = "results/ggm/paper_boot/", 
+                               path.save = "results/final_material_paper_v2/")
+### Create panel figure for results bootstrapping (SI)
+panel.boot <- ggpubr::ggarrange(ret[[1]], ret[[2]], 
+                                ncol = 2, 
+                                labels = c("a", "b"))
+ggplot2::ggsave(filename = paste0("results/final_material_paper_v2/SI/", 
+                                  "pcor_boot_panel.png"), 
+                plot = panel.boot, 
+                dpi = 720/2, 
+                width = 7, height = 15)
 
 ## Visualize correlation exposome between time points
 plot.cor.exp.time()

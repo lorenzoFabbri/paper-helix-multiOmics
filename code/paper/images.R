@@ -227,8 +227,8 @@ visualize.common.cpgs <- function(path, threshold) {
     if (nrow(df1.signif) > 0 & nrow(df2.signif) > 0) {
       common.sites <- base::intersect(df1.signif$cpg, df2.signif$cpg)
       dat <- list(
-        t1 = df1.signif$cpg, 
-        t2 = df2.signif$cpg
+        A = df1.signif$cpg, 
+        B = df2.signif$cpg
       )
       
       venn <- ggVennDiagram::Venn(dat) %>% ggVennDiagram::process_data()
@@ -244,8 +244,7 @@ visualize.common.cpgs <- function(path, threshold) {
                                family = "serif", size = 5, alpha = 0.5, 
                                data = venn@region) +
         ggplot2::theme_void() +
-        ggplot2::labs(title = paste0(toupper(mol), "\n", 
-                                     "Threshold FDR: ", threshold))
+        ggplot2::labs(title = paste0(toupper(mol)))
       list.venn.plts[[mol]] <- venn.plt
     } else {
       common.sites <- "none"
@@ -253,7 +252,8 @@ visualize.common.cpgs <- function(path, threshold) {
   } # End loop over molecules
   
   a.grob <- gridExtra::arrangeGrob(grobs = list.venn.plts, ncol = 2)
-  ggplot2::ggsave(filename = "venn_molsCpG.png", path = "results/images/", 
+  ggplot2::ggsave(filename = "venn_molsCpG.png", 
+                  path = "results/final_material_paper_v2/SI/", 
                   height = 16, width = 12, plot = a.grob)
 }
 
@@ -371,9 +371,10 @@ plot.bootstrapping.nets <- function(path, path.save) {
         ggplot2::geom_density(mapping = aes(x = `.`)) +
         ggplot2::geom_vline(mapping = aes(xintercept = median(`.`), 
                                           color = "median"), 
-                            show.legend = TRUE) +
+                            show.legend = FALSE) +
         ggplot2::labs(title = paste0(lab, "\n", 
-                                     metric)) +
+                                     ifelse(metric == "pcor.x", 
+                                            "Visit A", "Visit B"))) +
         ggplot2::theme_minimal() +
         ggplot2::scale_color_manual(name = "statistics", 
                                     values = c(median = "red")) +
@@ -385,13 +386,15 @@ plot.bootstrapping.nets <- function(path, path.save) {
   }
   grid.t1 <- gridExtra::grid.arrange(grobs = all.plots$pcor.x %>% unname(), ncol = 2, 
                                      nrow = ceiling(length(all.plots$pcor.x) / 2))
-  ggplot2::ggsave(filename = paste0(path.save, "pcor_t1_boot.png"), 
+  ggplot2::ggsave(filename = paste0(path.save, "SI/", 
+                                    "pcor_t1_boot.png"), 
                   plot = grid.t1, 
                   dpi = 720/2, 
                   width = 7, height = 15)
   grid.t2 <- gridExtra::grid.arrange(grobs = all.plots$pcor.y %>% unname(), ncol = 2, 
                                      nrow = ceiling(length(all.plots$pcor.y) / 2))
-  ggplot2::ggsave(filename = paste0(path.save, "pcor_t2_boot.png"), 
+  ggplot2::ggsave(filename = paste0(path.save, "SI/", 
+                                    "pcor_t2_boot.png"), 
                   plot = grid.t2, 
                   dpi = 720/2, 
                   width = 7, height = 15)
@@ -418,6 +421,8 @@ plot.bootstrapping.nets <- function(path, path.save) {
     gtsummary::as_gt() %>% gt::gtsave(., 
                                       filename = "results/images/boot_desc.rtf", 
                                       zoom = 4, expand = 7)
+  
+  return(list(grid.t1, grid.t2))
 }
 
 ##### Function to plot change in networks' metrics by time point
