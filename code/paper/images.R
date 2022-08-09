@@ -70,7 +70,7 @@ plot.net.as.heatmap <- function(net) {
                    panel.spacing = unit(0.05, "lines"), 
                    strip.text.x = ggplot2::element_text(size = 11), 
                    strip.text.y = ggplot2::element_text(size = 7))
-  ggplot2::ggsave(filename = "results/final_material_paper_v2/heatmap_adj_mergedNet.png", 
+  ggplot2::ggsave(filename = "results/final_material_paper_v2/heatmap_adj_mergedNet.jpg", 
                   height = 15, width = 15, dpi = 720, plot = plt)
 }
 
@@ -252,9 +252,10 @@ visualize.common.cpgs <- function(path, threshold) {
   } # End loop over molecules
   
   a.grob <- gridExtra::arrangeGrob(grobs = list.venn.plts, ncol = 2)
-  ggplot2::ggsave(filename = "venn_molsCpG.png", 
+  ggplot2::ggsave(filename = "venn_molsCpG.jpg", 
                   path = "results/final_material_paper_v2/SI/", 
-                  height = 16, width = 12, plot = a.grob)
+                  height = 16, width = 12, dpi = 320, 
+                  plot = a.grob)
 }
 
 ##### Function to load results bootstrapping merged networks and visualize intervals
@@ -312,9 +313,9 @@ plot.bootstrapping.nets <- function(path, path.save) {
     ggplot2::labs(x = "bootstrap iteration", 
                   y = "log_10(number of reproducible edges)") +
     ggplot2::scale_y_log10()
-  ggplot2::ggsave(filename = paste0(path.save, "repEdges_byIter.png"), 
+  ggplot2::ggsave(filename = paste0(path.save, "repEdges_byIter.jpg"), 
                   plot = plt, 
-                  dpi = 720/2, 
+                  dpi = 320, 
                   width = 7, height = 5)
   ##############################################################################
   
@@ -387,16 +388,16 @@ plot.bootstrapping.nets <- function(path, path.save) {
   grid.t1 <- gridExtra::grid.arrange(grobs = all.plots$pcor.x %>% unname(), ncol = 2, 
                                      nrow = ceiling(length(all.plots$pcor.x) / 2))
   ggplot2::ggsave(filename = paste0(path.save, "SI/", 
-                                    "pcor_t1_boot.png"), 
+                                    "pcor_t1_boot.jpg"), 
                   plot = grid.t1, 
-                  dpi = 720/2, 
+                  dpi = 320, 
                   width = 7, height = 15)
   grid.t2 <- gridExtra::grid.arrange(grobs = all.plots$pcor.y %>% unname(), ncol = 2, 
                                      nrow = ceiling(length(all.plots$pcor.y) / 2))
   ggplot2::ggsave(filename = paste0(path.save, "SI/", 
-                                    "pcor_t2_boot.png"), 
+                                    "pcor_t2_boot.jpg"), 
                   plot = grid.t2, 
-                  dpi = 720/2, 
+                  dpi = 320, 
                   width = 7, height = 15)
   
   # Compute statistics from bootstrapped merged networks

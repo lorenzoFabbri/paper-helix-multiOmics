@@ -19,9 +19,9 @@ panel.boot <- ggpubr::ggarrange(ret[[1]], ret[[2]],
                                 ncol = 2, 
                                 labels = c("a", "b"))
 ggplot2::ggsave(filename = paste0("results/final_material_paper_v2/SI/", 
-                                  "pcor_boot_panel.png"), 
+                                  "pcor_boot_panel.jpg"), 
                 plot = panel.boot, 
-                dpi = 720/2, 
+                dpi = 320, 
                 width = 7, height = 15)
 
 ## Visualize correlation exposome between time points
@@ -111,8 +111,8 @@ tmp.pvals <- unproc.nets %>%
   ggplot2::labs(x = "p-values") +
   ggplot2::scale_fill_brewer(palette = "Accent")
 plt <- egg::ggarrange(tmp.pvals, tmp, ncol = 1, heights = c(0.3, 1.2))
-ggplot2::ggsave(filename = "results/final_material_paper_v2/pcorsPvals.png", 
-                height = 10, width = 15, dpi = 720, plot = plt)
+ggplot2::ggsave(filename = "results/final_material_paper_v2/pcorsPvals.jpg", 
+                height = 10, width = 15, dpi = 320, plot = plt)
 
 ## Distribution of types of edges by chemical class for merged network
 all.exposures <- dict.exposure.groups() %>%
@@ -198,8 +198,8 @@ plt <- ggplot2::ggplot(data = counts, mapping = aes(x = edge_type,
                      position = ggplot2::position_dodge(width = 0.9), 
                      color = "black", vjust = -0.3) +
   ggplot2::scale_fill_brewer(palette = "Accent")
-ggplot2::ggsave(filename = "results/final_material_paper_v2/barplots_countsEdges.png", 
-                height = 10, width = 15, dpi = 720, plot = plt)
+ggplot2::ggsave(filename = "results/final_material_paper_v2/barplots_countsEdges.jpg", 
+                height = 10, width = 15, dpi = 320, plot = plt)
 
 ################################################################################
 ##### Tables #####
