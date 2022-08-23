@@ -19,59 +19,72 @@ plot.net.as.heatmap <- function(net) {
   adj.melted <- reshape::melt(adj)
   
   # Heatmap (check https://web.stanford.edu/class/bios221/labs/networks/lab_7_networks.html)
+  set.seed(1)
   Scd <- sna::component.dist(adj)
   lcc.ind <- which(Scd$membership == which.max(Scd$csize))
   S <- adj[lcc.ind, lcc.ind]
+  n <- dim(S)[1]
+  d <- as.vector(S %*% rep(1, n))
+  Lsym <- Matrix::Diagonal(n) - 
+    (Matrix::Diagonal(x = d^(-1/2)) %*% S %*% Matrix::Diagonal(x = d^(-1/2)))
+  eLsym <- eigen(Lsym)
+  eLV <- eLsym$vectors[, n-1:3]
+  rownames(eLV) <- rownames(Lsym)
+  my.dend <- hclust(dist(eLV), method = "ward.D")
   
-  ## Reorder rows and columns of S according to label of nodes
+  # Add info on type of node (e.g., exposure or CpG site)
+  col.nodes <- map.char.to.aes()[[3]] %>% as.data.frame() %>%
+    tibble::rownames_to_column() %>%
+    tibble::as_tibble() %>%
+    `colnames<-`(c("label", "color"))
   selected.nodes <- tibble::as_tibble(colnames(as.matrix(S))) %>%
     `colnames<-`(c("name"))
   mapping.to.class <- tibble::as_tibble(df$vertices) %>%
     dplyr::select(name, label, group) %>%
-    dplyr::inner_join(selected.nodes)
+    dplyr::inner_join(selected.nodes) %>%
+    dplyr::inner_join(col.nodes) %>%
+    dplyr::select(-c("group"))
   if (!identical(selected.nodes$name, mapping.to.class$name)) { stop(call. = TRUE) }
-  mapping.to.class <- mapping.to.class %>%
-    dplyr::mutate(idx = dplyr::row_number()) %>%
-    dplyr::arrange(label, name) %>%
-    dplyr::mutate(idx.sorted = dplyr::row_number())
-  S <- S[mapping.to.class$idx, mapping.to.class$idx, drop = FALSE]
   
-  to.plot <- as.data.frame(as.matrix(S)) %>%
-    dplyr::mutate(var1 = factor(row.names(.), levels = row.names(.))) %>%
-    tidyr::gather(key = var2, value = value, -var1, 
-                  factor_key = TRUE, na.rm = TRUE) %>%
+  # Plot heatmap
+  to.plot <- ggdendroplot::hmReady(df = as.data.frame(as.matrix(S)), 
+                                   rowclus = my.dend, colclus = my.dend) %>%
     tibble::as_tibble() %>%
-    dplyr::inner_join(mapping.to.class[, c("name", "label")], 
-                      by = c("var1" = "name")) %>%
-    dplyr::inner_join(mapping.to.class[, c("name", "label")], 
-                      by = c("var2" = "name")) %>%
-    dplyr::inner_join(df$vertices[, c("name", "degree")], by = c("var1" = "name")) %>%
-    dplyr::inner_join(df$vertices[, c("name", "degree")], by = c("var2" = "name")) %>%
-    dplyr::group_by(label.y, label.x) %>%
-    dplyr::arrange(desc(degree.y), desc(degree.x), .by_group = TRUE) %>%
-    dplyr::ungroup()
-  
-  plt <- to.plot %>%
-    ggplot2::ggplot(data = ., 
-                    mapping = aes(x = as_factor(var1), 
-                                  y = as_factor(var2), 
-                                  fill = as.factor(value))) +
-    ggplot2::geom_tile(color = "grey") +
-    ggplot2::facet_grid(rows = ggplot2::vars(label.y), 
-                        cols = ggplot2::vars(label.x), 
-                        scales = "free", space = "free", drop = TRUE) +
-    ggplot2::scale_fill_manual(values = c("lightgrey", "red"), name = "adjacency") +
-    ggplot2::theme(axis.text.x = element_text(angle = 90, 
-                                              vjust = 1, hjust = 1, 
-                                              size = 2), 
-                   axis.text.y = element_text(size = 2), 
+    dplyr::inner_join(mapping.to.class, by = c("rowid" = "name"))
+  to.plot$value <- as.integer(to.plot$value)
+  calcs <- ggdendroplot:::.plotcalculation(clust = my.dend, 
+                                           xlim = NULL, ylim = NULL, 
+                                           pointing = "updown")
+  calcs.y <- ggdendroplot:::.plotcalculation(clust = my.dend, 
+                                             xlim = NULL, ylim = NULL, 
+                                             pointing = "side")
+  col.nodes <- to.plot[match(calcs$plotlabels$label, 
+                             to.plot$rowid), ]$color
+  plt <- ggplot2::ggplot(data = to.plot) +
+    ggplot2::geom_tile(aes(x = x, y = y, fill = factor(value))) +
+    ggplot2::scale_fill_manual(values = c("lightgrey", "red"), 
+                               name = "adjacency") +
+    ggplot2::scale_x_continuous(breaks = calcs$plotlabels$x, 
+                                labels = calcs$plotlabels$label, 
+                                expand = c(0, 0)) +
+    ggplot2::scale_y_continuous(breaks = calcs.y$plotlabels$y, 
+                                labels = calcs.y$plotlabels$label, 
+                                expand = c(0, 0)) +
+    ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, 
+                                              size = 2, 
+                                              colour = col.nodes), 
+                   axis.text.y = element_text(size = 2, 
+                                              colour = col.nodes), 
                    axis.title.x = element_blank(), 
                    axis.title.y = element_blank(), 
-                   panel.spacing = unit(0.05, "lines"), 
                    strip.text.x = ggplot2::element_text(size = 11), 
-                   strip.text.y = ggplot2::element_text(size = 7))
+                   strip.text.y = ggplot2::element_text(size = 7), 
+                   axis.ticks = element_blank(), 
+                   panel.background = element_blank())
   ggplot2::ggsave(filename = "results/final_material_paper_v2/heatmap_adj_mergedNet.jpg", 
-                  height = 15, width = 15, dpi = 720, plot = plt)
+                  height = 15, width = 15, 
+                  dpi = 720, 
+                  plot = plt)
 }
 
 ##### Function to plot Venn diagrams from table of direct edges of merged network
