@@ -1,0 +1,160 @@
+---
+title: "Childhood exposure to non-persistent endocrine disrupting chemicals and multi-omic profiles: a panel study"
+title_textsize: "60px"
+main_findings: "ABC"
+main_textsize: "90px"
+main_topsize: 0.05
+main_bottomsize: 0.02
+logoright_name: "images/qr.png"
+poster_height: "46.8in"
+poster_width: "33.1in"
+author:
+  - name: Lorenzo Fabbri
+    affil: a, b
+    main: TRUE
+    orcid: "0000-0003-3031-322X"
+  - name: Ronan Garlantézec
+    affil: c
+  - name: Karine Audouze
+    affil: d
+  - name: Mariona Bustamante
+    affil: e, a, b, f
+  - name: Ángel Carracedo
+    affil: g, h
+  - name: Leda Chatzi
+    affil: j
+  - name: Juan Ramón González
+    affil: a, j, f
+  - name: Regina Gražulevičienė
+    affil: k
+  - name: Barbara Heude
+    affil: l
+  - name: Hector Keun
+    affil: m
+  - name: Chung-Ho E Lau
+    affil: n, o
+  - name: Eduard Sabidó
+    affil: e, b
+  - name: Alexandros P Siskos
+    affil: m
+  - name: Rémy Slama
+    affil: p
+  - name: Cathrine Thomsen
+    affil: q
+  - name: John Wright
+    affil: r
+  - name: Wen Lun Yuan
+    affil: l, s
+  - name: Maribel Casas
+    affil: a, b, f
+  - name: Martine Vrijheid
+    affil: a, b, f
+  - name: Léa Maitre
+    affil: a, b, f
+affiliation:
+  - num: a
+    address: Barcelona Institute for Global Health (ISGlobal), Barcelona, Spain
+  - num: b
+    address: Universitat Pompeu Fabra (UPF), Barcelona, Spain
+  - num: c
+    address: Univ Rennes, CHU Rennes, Inserm, EHESP, Irset (Institut de recherche en santé environnement et travail), UMR_S 1085, Rennes, France
+  - num: d
+    address: Université Paris Cité, T3S, INSERM UMR-S 1124, 45 rue des Saints Pères, Paris, France
+  - num: e
+    address: Center for Genomic Regulation (CRG), Barcelona Institute of Science and Technology (BIST), Barcelona, Spain
+  - num: f
+    address: CIBER Epidemiologa y Salud Pública (CIBERESP), Madrid, Spain
+  - num: g
+    address: Medicine Genomics Group, Centro de Investigación Biomédica en Red Enfermedades Raras (CIBERER), University of Santiago de Compostela, CEGEN-PRB3, Santiago de Compostela, Spain
+  - num: h
+    address: Galician Foundation of Genomic Medicine, Instituto de Investigación Sanitaria de Santiago de Compostela (IDIS), Servicio Gallego de Salud (SERGAS), Santiago de Compostela, Spain
+  - num: i
+    address: Department of Preventive Medicine, Keck School of Medicine, University of Southern California, Los Angeles, USA
+  - num: j
+    address: Department of Mathematics, Universitat Autònoma de Barcelona, Bellaterra, Spain,
+  - num: k
+    address: Department of Environmental Sciences, Vytautas Magnus University, Kaunas, Lithuania
+  - num: l
+    address: Université de Paris, Centre for Research in Epidemiology and Statistics (CRESS), INSERM, INRAE, Paris, France
+  - num: m
+    address: Cancer Metabolism & Systems Toxicology Group, Division of Cancer, Department of Surgery and Cancer & Division of Systems Medicine, Department of Metabolism, Digestion & Reproduction, Imperial College London, Hammersmith Hospital Campus, London, UK
+  - num: "n"
+    address: MRC Centre for Environment and Health, School of Public Health, Imperial College London, London, UK
+  - num: o
+    address: Division of Systems Medicine, Department of Metabolism, Digestion & Reproduction, Imperial College, South Kensington, London, UK
+  - num: p
+    address: Team of Environmental Epidemiology applied to Reproduction and Respiratory Health, Institute for Advanced Biosciences (IAB), Inserm, CNRS, Université Grenoble Alpes, Grenoble, France
+  - num: q
+    address: Department of Environmental Health, Norwegian Institute of Public Health, Oslo, Norway
+  - num: r
+    address: Bradford Institute for Health Research, Bradford Teaching Hospitals NHS Foundation Trust, Bradford, UK
+  - num: s
+    address: Singapore Institute for Clinical Sciences (SICS), Agency for Science, Technology, and Research (A*STAR), Singapore, Singapore
+author_textsize: "0.7em"
+authorextra_textsize: "18px"
+affiliation_textsize: "12px"
+column_numbers: 3
+knit: pagedown::chrome_print
+output:
+  posterdown::posterdown_betterport:
+    self_contained: false
+    pandoc_args: --mathjax
+    highlight: espresso
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, 
+                      tidy = FALSE, 
+                      message = FALSE, 
+                      fig.align = 'center', out.width = "100%")
+```
+
+# Background & Objectives
+
+# Methods
+
+## Study design & Data collection
+```{r, echo=FALSE}
+knitr::include_graphics("images/design.png")
+```
+
+## Multi-omics exposure networks
+```{r, echo=FALSE}
+knitr::include_graphics("images/methods.png")
+```
+
+# Results
+```{r, echo=FALSE}
+knitr::include_graphics("images/networks_main.svg")
+```
+
+# Conclusions
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
