@@ -25,7 +25,7 @@ Font-awesome icons ie github or twitter
 <!--
 Google fonts api stuff
 -->
-<link href='https://fonts.googleapis.com/css?family=Special Elite' rel='stylesheet'>
+<link href='https://fonts.googleapis.com/css?family=Rasa' rel='stylesheet'>
 <link href='https://fonts.googleapis.com/css?family=Rasa' rel='stylesheet'>
 
 <!--
@@ -43,7 +43,7 @@ padding: 0px;
 width: 33.1in;
 height: 46.8in;
 text-align: justify;
-font-size: 45px;
+font-size: 38px;
 line-height: 1.05;
 }
 /* RMarkdown Class Styles */
@@ -132,9 +132,9 @@ padding: 0px;
 .outer {
 width: 33.1in;
 height: calc(46.8in *  (1 - 5.0e-2 - 2.0e-2 - 0.01) );
--webkit-column-count: 3; /* Chrome, Safari, Opera */
--moz-column-count: 3; /* Firefox */
-column-count: 3;
+-webkit-column-count: 2; /* Chrome, Safari, Opera */
+-moz-column-count: 2; /* Firefox */
+column-count: 2;
 -webkit-column-fill: auto;
 -moz-column-fill: auto;
 column-fill: auto;
@@ -177,13 +177,13 @@ background: 0;
 color:#0b4545;
 margin: 0;
 line-height: 85%;
-font-size: 0.7em;
+font-size: 24px;
 }
 #affiliation {
 padding-top: 0.1em;
 color: ;
 font-style: italic;
-font-size: 12px;
+font-size: 18px;
 margin: 0;
 }
 sup {
@@ -202,7 +202,7 @@ font-size: 30px;
 color: #008080;
 margin: 0;
 line-height: 85%;
-font-size: 18px;
+font-size: 22px;
 text-align: left;
 }
 .outer h1, h2, h3, h4, h5, h6 {
@@ -249,7 +249,7 @@ height: calc(46.8in * 5.0e-2);
 position: absolute;
 background-color: #0b4545;
 color: #ffffff90;
-font-family: Special Elite;
+font-family: Rasa;
 background-image: linear-gradient(#0b4545 50%,#008080);
 }
 .main strong {
@@ -280,8 +280,8 @@ bottom: 0.2in;
 position: absolute;
 }
 .main p {
-font-size: 90px;
-font-family: Special Elite;
+font-size: 70px;
+font-family: Rasa;
 text-align: center;
 margin: 0;
 position: absolute;
@@ -381,7 +381,7 @@ span > #tab:mytable {
 
 <div class="column outer">
 <div class="section">
-<h1 id="title">Childhood exposure to non-persistent endocrine disrupting chemicals and multi-omic profiles: a panel study</h1><br>
+<h1 id="title">Childhood exposure to non-persistent <strong>endocrine disrupting chemicals</strong> and <strong>multi-omic</strong> profiles: a panel study</h1><br>
 <h3 id="author" class="author">
 
 Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-3031-322X"><img src="https://raw.githubusercontent.com/brentthorne/posterdown/master/images/orcid.jpg"></a></sup><br>
@@ -418,29 +418,230 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 
 <div id="background-objectives" class="section level1">
 <h1>Background &amp; Objectives</h1>
+<ul>
+<li>Individuals are exposed to multiple environmental pollutants with endocrine disrupting activity (endocrine disruptors, EDCs)</li>
+<li>Few studies have integrated multiple omic layers, especially in a child cohort</li>
+<li>We aimed to identify multi-omic signatures associated with childhood exposure to non-persistent EDCs using a network approach</li>
+</ul>
 </div>
 <div id="methods" class="section level1">
 <h1>Methods</h1>
-<div id="study-design-data-collection" class="section level2">
-<h2>Study design &amp; Data collection</h2>
 <p><img src="images/design.png" width="100%" style="display: block; margin: auto;" /></p>
-</div>
-<div id="multi-omics-exposure-networks" class="section level2">
-<h2>Multi-omics exposure networks</h2>
+<ul>
+<li>Data: HELIX (Human Early-Life Exposome) Child Panel Study</li>
+<li>Exposures: 22 non-persistent EDCs (10 phthalate, 7 phenol, and 5 organophosphate pesticide metabolites) with repeated measures</li>
+<li>Multi-omic profiles: methylome, serum and urinary metabolome, proteome</li>
+</ul>
 <p><img src="images/methods.png" width="100%" style="display: block; margin: auto;" /></p>
-</div>
+<ul>
+<li>We developed Gaussian Graphical Models (GGMs) based on shrinkage estimates of pairwise partial correlations between EDCs and molecular features in each week</li>
+<li>The obtained networks for the two visits were merged in order to identify reproducible associations</li>
+<li>We corroborated the associations between EDCs and omic features with
+<ul>
+<li>Manual literature review (PubMed)</li>
+<li>Adverse health effects associated with the EDCs (PubChem)</li>
+<li>Traits associated with the CpG sites (EWAS Atlas)</li>
+<li>Genes mapped to the CpG sites (EWAS Atlas, EWAS Catalog)</li>
+</ul></li>
+</ul>
 </div>
 <div id="results" class="section level1">
 <h1>Results</h1>
+<div id="study-population" class="section level2">
+<h2>Study population</h2>
+<table>
+<colgroup>
+<col width="39%" />
+<col width="30%" />
+<col width="30%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left"><strong>Characteristic</strong></th>
+<th align="center"><strong>Visit A</strong>, N = 140</th>
+<th align="center"><strong>Visit B</strong>, N = 143</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Cohort</strong></td>
+<td align="center"></td>
+<td align="center"></td>
+</tr>
+<tr class="even">
+<td align="left">BIB</td>
+<td align="center">27 (19%)</td>
+<td align="center">27 (19%)</td>
+</tr>
+<tr class="odd">
+<td align="left">EDEN</td>
+<td align="center">23 (16%)</td>
+<td align="center">23 (16%)</td>
+</tr>
+<tr class="even">
+<td align="left">KANC</td>
+<td align="center">27 (19%)</td>
+<td align="center">26 (18%)</td>
+</tr>
+<tr class="odd">
+<td align="left">RHEA</td>
+<td align="center">29 (21%)</td>
+<td align="center">29 (20%)</td>
+</tr>
+<tr class="even">
+<td align="left">SAB</td>
+<td align="center">34 (24%)</td>
+<td align="center">38 (27%)</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>Sex</strong></td>
+<td align="center"></td>
+<td align="center"></td>
+</tr>
+<tr class="even">
+<td align="left">female</td>
+<td align="center">60 (43%)</td>
+<td align="center">61 (43%)</td>
+</tr>
+<tr class="odd">
+<td align="left">male</td>
+<td align="center">80 (57%)</td>
+<td align="center">82 (57%)</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Age</strong></td>
+<td align="center">6.97 (6.44, 8.85)</td>
+<td align="center">7.55 (6.93, 9.62)</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>Ethnicity</strong></td>
+<td align="center"></td>
+<td align="center"></td>
+</tr>
+<tr class="even">
+<td align="left">Caucasian</td>
+<td align="center">129 (92%)</td>
+<td align="center">132 (92%)</td>
+</tr>
+<tr class="odd">
+<td align="left">Pakistani</td>
+<td align="center">10 (7.1%)</td>
+<td align="center">10 (7.0%)</td>
+</tr>
+<tr class="even">
+<td align="left">Other</td>
+<td align="center">1 (0.7%)</td>
+<td align="center">1 (0.7%)</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>zBMI</strong></td>
+<td align="center">0.28 (-0.34, 1.09)</td>
+<td align="center">0.26 (-0.34, 1.09)</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Season</strong></td>
+<td align="center"></td>
+<td align="center"></td>
+</tr>
+<tr class="odd">
+<td align="left">autumn</td>
+<td align="center">35 (25%)</td>
+<td align="center">38 (27%)</td>
+</tr>
+<tr class="even">
+<td align="left">spring</td>
+<td align="center">50 (36%)</td>
+<td align="center">49 (34%)</td>
+</tr>
+<tr class="odd">
+<td align="left">summer</td>
+<td align="center">20 (14%)</td>
+<td align="center">8 (5.6%)</td>
+</tr>
+<tr class="even">
+<td align="left">winter</td>
+<td align="center">35 (25%)</td>
+<td align="center">48 (34%)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="merged-network-reproducible-associations-across-visits" class="section level2">
+<h2>Merged network: reproducible associations across visits</h2>
 <p><img src="images/networks_main.svg" width="100%" style="display: block; margin: auto;" /></p>
+<ul>
+<li>The process of network merging led to the exclusion of a significant number of edges, maintaining 950 edges compared to 4,083 and 4,908 in networks A and B, respectively</li>
+</ul>
+<table style="width:100%;">
+<colgroup>
+<col width="16%" />
+<col width="16%" />
+<col width="16%" />
+<col width="16%" />
+<col width="16%" />
+<col width="16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">Chemical class</th>
+<th align="center">Compound</th>
+<th align="center">Omic layer</th>
+<th align="center">Omic feature</th>
+<th align="center">Median pcor</th>
+<th align="center">Biological interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">OP pesticides</td>
+<td align="center">DEP</td>
+<td align="center">Serum metabolome</td>
+<td align="center">Serotonin</td>
+<td align="center">0.052</td>
+<td align="center">Exposure to pesticides linked to changes in the serotonergic system</td>
+</tr>
+<tr class="even">
+<td align="center">Phenols</td>
+<td align="center">TRCS</td>
+<td align="center">Serum metabolome</td>
+<td align="center">Serotonin</td>
+<td align="center">-0.055</td>
+<td align="center">Possible association between personal care product ingredients and serotonin</td>
+</tr>
+<tr class="odd">
+<td align="center">Phthalates</td>
+<td align="center">oh-MiNP</td>
+<td align="center">Serum metabolome</td>
+<td align="center">Kynurenine</td>
+<td align="center">-0.056</td>
+<td align="center">Possible mediating effect of quinolic acid on exposure to phthalates and neurological disorders</td>
+</tr>
+<tr class="even">
+<td align="center">Phenols</td>
+<td align="center">TRCS</td>
+<td align="center">Proteome</td>
+<td align="center">Leptin</td>
+<td align="center">-0.066</td>
+<td align="center">Effect of mixtures of phenols and parabens</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 <div id="conclusions" class="section level1">
 <h1>Conclusions</h1>
+<ul>
+<li>We employed an integrative method to investigate reproducible associations across time points between non-persistent EDCs and multi-omic profiles in a child cohort</li>
+<li>Strengths: repeated pooled samples of urines across each week; reproducible and quantifiable measurements of the metabolome</li>
+<li>Limitations: relatively small sample size; residual confounding</li>
+<li>Some of these biological signatures point towards the potential biological effects of OP pesticide and phthalate metabolites on the nervous system</li>
+<li>Among the most significant, we found associations between diethyl phosphate and serotonin, triclosan and serotonin, mono‑4‑methyl‑7‑hydroxyoctyl phthalate and kynurenine, triclosan and leptin</li>
+</ul>
 </div>
 
 </div>
 <div class="main">
-<p>ABC</p>
+<p>Some of these biological signatures point towards the potential biological effects of OP pesticide and phthalate metabolites on the nervous system</p>
 </div>
 <div class="main_bottom">
 <img id="main-img-left" src=>

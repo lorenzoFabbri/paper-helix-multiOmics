@@ -1,8 +1,9 @@
 ---
-title: "Childhood exposure to non-persistent endocrine disrupting chemicals and multi-omic profiles: a panel study"
+title: "Childhood exposure to non-persistent **endocrine disrupting chemicals** and **multi-omic** profiles: a panel study"
 title_textsize: "60px"
-main_findings: "ABC"
-main_textsize: "90px"
+main_findings: "Some of these biological signatures point towards the potential biological effects of OP pesticide and phthalate metabolites on the nervous system"
+main_fontfamily: "Rasa"
+main_textsize: "70px"
 main_topsize: 0.05
 main_bottomsize: 0.02
 logoright_name: "images/qr.png"
@@ -90,10 +91,11 @@ affiliation:
     address: Bradford Institute for Health Research, Bradford Teaching Hospitals NHS Foundation Trust, Bradford, UK
   - num: s
     address: Singapore Institute for Clinical Sciences (SICS), Agency for Science, Technology, and Research (A*STAR), Singapore, Singapore
-author_textsize: "0.7em"
-authorextra_textsize: "18px"
-affiliation_textsize: "12px"
-column_numbers: 3
+author_textsize: "24px"
+authorextra_textsize: "22px"
+affiliation_textsize: "18px"
+column_numbers: 2
+body_textsize: "38px"
 knit: pagedown::chrome_print
 output:
   posterdown::posterdown_betterport:
@@ -112,49 +114,78 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE,
 
 # Background & Objectives
 
+* Individuals are exposed to multiple environmental pollutants with endocrine disrupting activity (endocrine disruptors, EDCs)
+* Few studies have integrated multiple omic layers, especially in a child cohort
+* We aimed to identify multi-omic signatures associated with childhood exposure to non-persistent EDCs using a network approach
+
 # Methods
 
-## Study design & Data collection
 ```{r, echo=FALSE}
 knitr::include_graphics("images/design.png")
 ```
 
-## Multi-omics exposure networks
+* Data: HELIX (Human Early-Life Exposome) Child Panel Study
+* Exposures: 22 non-persistent EDCs (10 phthalate, 7 phenol, and 5 organophosphate pesticide metabolites) with repeated measures
+* Multi-omic profiles: methylome, serum and urinary metabolome, proteome
+
 ```{r, echo=FALSE}
 knitr::include_graphics("images/methods.png")
 ```
 
+* We developed Gaussian Graphical Models (GGMs) based on shrinkage estimates of pairwise partial correlations between EDCs and molecular features in each week
+* The obtained networks for the two visits were merged in order to identify reproducible associations
+* We corroborated the associations between EDCs and omic features with
+  * Manual literature review (PubMed)
+  * Adverse health effects associated with the EDCs (PubChem)
+  * Traits associated with the CpG sites (EWAS Atlas)
+  * Genes mapped to the CpG sites (EWAS Atlas, EWAS Catalog)
+
 # Results
+
+## Study population
+
+|**Characteristic**        |   **Visit A**, N = 140   |   **Visit B**, N = 143   |
+|:-------------------------|:------------------:|:------------------:|
+|__Cohort__                |                    |                    |
+|BIB                       |      27 (19%)      |      27 (19%)      |
+|EDEN                      |      23 (16%)      |      23 (16%)      |
+|KANC                      |      27 (19%)      |      26 (18%)      |
+|RHEA                      |      29 (21%)      |      29 (20%)      |
+|SAB                       |      34 (24%)      |      38 (27%)      |
+|__Sex__                   |                    |                    |
+|female                    |      60 (43%)      |      61 (43%)      |
+|male                      |      80 (57%)      |      82 (57%)      |
+|__Age__                   | 6.97 (6.44, 8.85)  | 7.55 (6.93, 9.62)  |
+|__Ethnicity__             |                    |                    |
+|Caucasian                 |     129 (92%)      |     132 (92%)      |
+|Pakistani                 |     10 (7.1%)      |     10 (7.0%)      |
+|Other                     |      1 (0.7%)      |      1 (0.7%)      |
+|__zBMI__                  | 0.28 (-0.34, 1.09) | 0.26 (-0.34, 1.09) |
+|__Season__                |                    |                    |
+|autumn                    |      35 (25%)      |      38 (27%)      |
+|spring                    |      50 (36%)      |      49 (34%)      |
+|summer                    |      20 (14%)      |      8 (5.6%)      |
+|winter                    |      35 (25%)      |      48 (34%)      |
+
+## Merged network: reproducible associations across visits
+
 ```{r, echo=FALSE}
 knitr::include_graphics("images/networks_main.svg")
 ```
 
+* The process of network merging led to the exclusion of a significant number of edges, maintaining 950 edges compared to 4,083 and 4,908 in networks A and B, respectively
+
+| Chemical class | Compound | Omic layer | Omic feature | Median pcor | Biological interpretation |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| OP pesticides | DEP | Serum metabolome | Serotonin | 0.052 | Exposure to pesticides linked to changes in the serotonergic system |
+| Phenols | TRCS | Serum metabolome | Serotonin | -0.055 | Possible association between personal care product ingredients and serotonin |
+| Phthalates | oh-MiNP | Serum metabolome | Kynurenine | -0.056 | Possible mediating effect of quinolic acid  on exposure to phthalates and neurological disorders |
+| Phenols | TRCS | Proteome | Leptin | -0.066 | Effect of mixtures of phenols and parabens |
+
 # Conclusions
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+* We employed an integrative method to investigate reproducible associations across time points between non-persistent EDCs and multi-omic profiles in a child cohort
+* Strengths: repeated pooled samples of urines across each week; reproducible and quantifiable measurements of the metabolome
+* Limitations: relatively small sample size; residual confounding
+* Some of these biological signatures point towards the potential biological effects of OP pesticide and phthalate metabolites on the nervous system
+* Among the most significant, we found associations between diethyl phosphate and serotonin, triclosan and serotonin, mono‑4‑methyl‑7‑hydroxyoctyl phthalate and kynurenine, triclosan and leptin

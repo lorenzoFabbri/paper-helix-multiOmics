@@ -39,7 +39,7 @@ load.metadata <- function(time.point) {
 }
 
 ##### Function to create table with population description
-tables.population.desc <- function() {
+tables.population.desc <- function(to.save) {
   meta.1 <- load.metadata(time.point = 1)
   meta.2 <- load.metadata(time.point = 2)
   metadata <- dplyr::bind_rows(meta.1, meta.2)
@@ -67,10 +67,14 @@ tables.population.desc <- function() {
                                              "Season"
                                  ), 
                                  by = "Period") %>%
-    gtsummary::add_overall() %>%
-    gtsummary::bold_labels() %>%
-    gtsummary::as_gt() %>% gt::gtsave(., filename = "results/images/pop_desc.rtf", 
-                                      zoom = 4, expand = 7)
+    #gtsummary::add_overall() %>%
+    gtsummary::bold_labels()
+  
+  if (to.save == TRUE) {
+    gt::gtsave(info %>% gtsummary::as_gt(), 
+               filename = "results/images/pop_desc.rtf", 
+               zoom = 4, expand = 7)
+  } else { return(info) }
 }
 
 ##### Helper function for `tables.networks` to process networks

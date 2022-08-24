@@ -19,6 +19,7 @@
 data/
 @eaDir/
 .fuse_hidden00003c6c00000002
+*.fuse_hidden*
 results/compare_adjustments/
 results/ewaff*/
 results/focus_merged_ccs/
