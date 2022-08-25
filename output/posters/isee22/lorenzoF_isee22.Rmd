@@ -100,7 +100,8 @@ body_textsize: "38px"
 bibliography: "bibliography.bib"
 link-citations: true
 csl: "small.csl"
-knit: pagedown::chrome_print
+knit:
+  pagedown::chrome_print
 output:
   posterdown::posterdown_betterport:
     self_contained: false
@@ -135,9 +136,9 @@ output:
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, 
+knitr::opts_chunk$set(echo = FALSE, include = TRUE, 
                       tidy = FALSE, 
-                      message = FALSE, 
+                      message = FALSE, warning = FALSE, 
                       fig.align = 'center', out.width = "100%")
 ```
 
