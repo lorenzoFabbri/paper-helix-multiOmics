@@ -131,7 +131,7 @@ padding: 0px;
 }
 .outer {
 width: 33.1in;
-height: calc(46.8in *  (1 - 5.0e-2 - 0 - 0.01) );
+height: calc(46.8in *  (1 - 5.0e-2 - 4.0e-2 - 0.01) );
 -webkit-column-count: 2; /* Chrome, Safari, Opera */
 -moz-column-count: 2; /* Firefox */
 column-count: 2;
@@ -177,13 +177,13 @@ background: 0;
 color:#0b4545;
 margin: 0;
 line-height: 85%;
-font-size: 24px;
+font-size: 28px;
 }
 #affiliation {
 padding-top: 0.1em;
 color: ;
 font-style: italic;
-font-size: 18px;
+font-size: 22px;
 margin: 0;
 }
 sup {
@@ -202,7 +202,7 @@ font-size: 30px;
 color: #008080;
 margin: 0;
 line-height: 85%;
-font-size: 22px;
+font-size: 26px;
 text-align: left;
 }
 .outer h1, h2, h3, h4, h5, h6 {
@@ -326,8 +326,8 @@ padding: 0cm;
 }
 .main_bottom {
 width: 33.1in;
-height: calc(46.8in * 0);
-margin-top: calc(46.8in * (1 - 0));
+height: calc(46.8in * 4.0e-2);
+margin-top: calc(46.8in * (1 - 4.0e-2));
 position: absolute;
 background-color: #0b4545;
 background-image: linear-gradient(#008080 10%, #0b4545);
@@ -418,7 +418,23 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 
 <style>
 #main-img-left, #main-img-center, #main-img-right {
- width: 10%;
+ width: 35%;
+}
+</style>
+<style>
+.main_bottom {
+ background-image: none;
+ background-color: #FFFFFF;
+}
+</style>
+<style>
+.section h1 {
+  font-size: 55px;
+}
+</style>
+<style>
+.section h2 {
+  font-size: 40px;
 }
 </style>
 <div id="background-objectives" class="section level1">
@@ -435,17 +451,19 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <li>Data: HELIX (Human Early-Life Exposome) Child Panel Study</li>
 </ul>
 <p><img src="images/study_design.svg" width="100%" style="display: block; margin: auto;" /></p>
-<ul>
-<li>We developed Gaussian Graphical Models (GGMs) based on shrinkage estimates of pairwise partial correlations between EDCs and molecular features in each week</li>
-<li>The obtained networks for the two visits were merged in order to identify reproducible associations</li>
-<li>We corroborated the associations between EDCs and omic features with
-<ul>
-<li>Manual literature review (PubMed)</li>
-<li>Adverse health effects associated with the EDCs (PubChem)</li>
-<li>Traits associated with the CpG sites (EWAS Atlas)</li>
-<li>Genes mapped to the CpG sites (EWAS Atlas, EWAS Catalog)</li>
-</ul></li>
-</ul>
+<!-- * We developed Gaussian Graphical Models (GGMs) based on shrinkage estimates of pairwise partial correlations between EDCs and molecular features in each week -->
+<!-- * The obtained networks for the two visits were merged in order to identify reproducible associations -->
+<!-- * We corroborated the associations between EDCs and omic features with -->
+<!--   * Manual literature review (PubMed) -->
+<!--   * Adverse health effects associated with the EDCs (PubChem) -->
+<!--   * Traits associated with the CpG sites (EWAS Atlas) -->
+<!--   * Genes mapped to the CpG sites (EWAS Atlas, EWAS Catalog) -->
+<p><br></p>
+<p><br></p>
+<p><br></p>
+<p><br></p>
+<p><br></p>
+<p><br></p>
 </div>
 <div id="results" class="section level1">
 <h1>Results</h1>
@@ -504,7 +522,7 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <td align="center">Serum metabolome</td>
 <td align="center">Serotonin</td>
 <td align="center">0.052</td>
-<td align="center">Exposure to pesticides linked to changes in the serotonergic system <span class="citation">[1]–[3]</span></td>
+<td align="center">Exposure to pesticides linked to changes in the serotonergic system<span class="citation"><sup>[<a href="#ref-slotkin2008developmental" role="doc-biblioref">1</a>–<a href="#ref-sarrouilhe2021exposome" role="doc-biblioref">3</a>]</sup></span></td>
 </tr>
 <tr class="even">
 <td align="center">Phenols</td>
@@ -512,7 +530,7 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <td align="center">Serum metabolome</td>
 <td align="center">Serotonin</td>
 <td align="center">-0.055</td>
-<td align="center">Association between personal care product ingredients and serotonin <span class="citation">[4]</span></td>
+<td align="center">Association between personal care product ingredients and serotonin<span class="citation"><sup>[<a href="#ref-houten2016changes" role="doc-biblioref">4</a>]</sup></span></td>
 </tr>
 <tr class="odd">
 <td align="center">Phthalates</td>
@@ -520,7 +538,7 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <td align="center">Serum metabolome</td>
 <td align="center">Kynurenine</td>
 <td align="center">-0.056</td>
-<td align="center">Mediating effect of quinolic acid on exposure to phthalates and neurological disorders <span class="citation">[5]</span></td>
+<td align="center">Mediating effect of quinolic acid on exposure to phthalates and neurological disorders<span class="citation"><sup>[<a href="#ref-nassan2019high" role="doc-biblioref">5</a>]</sup></span></td>
 </tr>
 <tr class="even">
 <td align="center">Phenols</td>
@@ -528,7 +546,7 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <td align="center">Proteome</td>
 <td align="center">Leptin</td>
 <td align="center">-0.066</td>
-<td align="center">Effect of mixtures of phenols and parabens <span class="citation">[6]</span></td>
+<td align="center">Effect of mixtures of phenols and parabens<span class="citation"><sup>[<a href="#ref-lee2022race" role="doc-biblioref">6</a>]</sup></span></td>
 </tr>
 </tbody>
 </table>
@@ -537,33 +555,32 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <div id="conclusions" class="section level1">
 <h1>Conclusions</h1>
 <ul>
-<li>We employed an integrative method to investigate reproducible associations across time points between non-persistent EDCs and multi-omic profiles in a child cohort</li>
-<li>Strengths: repeated pooled samples of urines across each week; reproducible and quantifiable measurements of the metabolome</li>
+<li>We employed an integrative method to investigate reproducible associations between non-persistent EDCs and multi-omic profiles in a child cohort</li>
+<li>Strengths: repeated pooled samples of urines; quantifiable measurements of the metabolome</li>
 <li>Limitations: relatively small sample size; residual confounding</li>
-<li>Some of these biological signatures point towards the potential biological effects of OP pesticide and phthalate metabolites on the nervous system</li>
-<li>Among the most significant, we found associations between diethyl phosphate and serotonin, triclosan and serotonin, mono‑4‑methyl‑7‑hydroxyoctyl phthalate and kynurenine, triclosan and leptin</li>
+<li>Some of these biological signatures point towards the potential biological effects of OP pesticides and phthalates on the nervous system</li>
 </ul>
 </div>
 <div id="references" class="section level1 unnumbered">
 <h1>References</h1>
 <div id="refs" class="references csl-bib-body">
 <div id="ref-slotkin2008developmental" class="csl-entry">
-<div class="csl-left-margin">[1] </div><div class="csl-right-inline">T. A. Slotkin and F. J. Seidler, <span>“Developmental neurotoxicants target neurodifferentiation into the serotonin phenotype: Chlorpyrifos, diazinon, dieldrin and divalent nickel,”</span> <em>Toxicology and applied pharmacology</em>, vol. 233, no. 2, pp. 211–219, 2008.</div>
+<div class="csl-left-margin">[1] </div><div class="csl-right-inline">T. A. Slotkin, F. J. Seidler, <em>Toxicology and applied pharmacology</em> <strong>2008</strong>, <em>233</em>, 211.</div>
 </div>
 <div id="ref-judge2016mechanism" class="csl-entry">
-<div class="csl-left-margin">[2] </div><div class="csl-right-inline">S. J. Judge <em>et al.</em>, <span>“Mechanism for the acute effects of organophosphate pesticides on the adult 5-HT system,”</span> <em>Chemico-biological interactions</em>, vol. 245, pp. 82–89, 2016.</div>
+<div class="csl-left-margin">[2] </div><div class="csl-right-inline">S. J. Judge, C. Y. Savy, M. Campbell, R. Dodds, L. K. Gomes, G. Laws, A. Watson, P. G. Blain, C. M. Morris, S. E. Gartside, <em>Chemico-biological interactions</em> <strong>2016</strong>, <em>245</em>, 82.</div>
 </div>
 <div id="ref-sarrouilhe2021exposome" class="csl-entry">
-<div class="csl-left-margin">[3] </div><div class="csl-right-inline">D. Sarrouilhe, N. Defamie, and M. Mesnil, <span>“Is the exposome involved in brain disorders through the serotoninergic system?”</span> <em>Biomedicines</em>, vol. 9, no. 10, p. 1351, 2021.</div>
+<div class="csl-left-margin">[3] </div><div class="csl-right-inline">D. Sarrouilhe, N. Defamie, M. Mesnil, <em>Biomedicines</em> <strong>2021</strong>, <em>9</em>, 1351.</div>
 </div>
 <div id="ref-houten2016changes" class="csl-entry">
-<div class="csl-left-margin">[4] </div><div class="csl-right-inline">S. M. Houten <em>et al.</em>, <span>“Changes in the metabolome in response to low-dose exposure to environmental chemicals used in personal care products during different windows of susceptibility,”</span> <em>PLoS One</em>, vol. 11, no. 7, p. e0159919, 2016.</div>
+<div class="csl-left-margin">[4] </div><div class="csl-right-inline">S. M. Houten, J. Chen, F. Belpoggi, F. Manservisi, A. Sanchez-Guijo, S. A. Wudy, S. L. Teitelbaum, <em>PLoS One</em> <strong>2016</strong>, <em>11</em>, e0159919.</div>
 </div>
 <div id="ref-nassan2019high" class="csl-entry">
-<div class="csl-left-margin">[5] </div><div class="csl-right-inline">F. L. Nassan, J. A. Gunn, M. M. Hill, B. A. Coull, and R. Hauser, <span>“High phthalate exposure increased urinary concentrations of quinolinic acid, implicated in the pathogenesis of neurological disorders: Is this a potential missing link?”</span> <em>Environmental research</em>, vol. 172, pp. 430–436, 2019.</div>
+<div class="csl-left-margin">[5] </div><div class="csl-right-inline">F. L. Nassan, J. A. Gunn, M. M. Hill, B. A. Coull, R. Hauser, <em>Environmental research</em> <strong>2019</strong>, <em>172</em>, 430.</div>
 </div>
 <div id="ref-lee2022race" class="csl-entry">
-<div class="csl-left-margin">[6] </div><div class="csl-right-inline">S. Lee, C. Karvonen-Gutierrez, B. Mukherjee, W. H. Herman, and S. K. Park, <span>“Race-specific associations of urinary phenols and parabens with adipokines in midlife women: The study of women’s health across the nation (SWAN),”</span> <em>Environmental Pollution</em>, vol. 303, p. 119164, 2022.</div>
+<div class="csl-left-margin">[6] </div><div class="csl-right-inline">S. Lee, C. Karvonen-Gutierrez, B. Mukherjee, W. H. Herman, S. K. Park, <em>Environmental Pollution</em> <strong>2022</strong>, <em>303</em>, 119164.</div>
 </div>
 </div>
 </div>
@@ -575,7 +592,7 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <div class="main_bottom">
 <img id="main-img-left" src=images/logos_sx.svg>
 <img id="main-img-center" src=>
-<img id="main-img-right" src=images/logos_dx.svg>
+<img id="main-img-right" src=>
 </div>
 </div>
 

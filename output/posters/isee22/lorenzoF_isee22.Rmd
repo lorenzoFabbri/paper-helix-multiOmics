@@ -5,9 +5,9 @@ main_findings: "Some of these biological signatures point towards the potential 
 main_fontfamily: "Rasa"
 main_textsize: "70px"
 main_topsize: 0.05
-main_bottomsize: 0.0
+main_bottomsize: 0.04
 logoleft_name: "images/logos_sx.svg"
-logoright_name: "images/logos_dx.svg"
+#logoright_name: "images/logos_dx.svg"
 poster_height: "46.8in"
 poster_width: "33.1in"
 author:
@@ -92,13 +92,14 @@ affiliation:
     address: Bradford Institute for Health Research, Bradford Teaching Hospitals NHS Foundation Trust, Bradford, UK
   - num: s
     address: Singapore Institute for Clinical Sciences (SICS), Agency for Science, Technology, and Research (A*STAR), Singapore, Singapore
-author_textsize: "24px"
-authorextra_textsize: "22px"
-affiliation_textsize: "18px"
+author_textsize: "28px"
+authorextra_textsize: "26px"
+affiliation_textsize: "22px"
 column_numbers: 2
 body_textsize: "38px"
 bibliography: "bibliography.bib"
-csl: "ieee.csl"
+link-citations: true
+csl: "small.csl"
 knit: pagedown::chrome_print
 output:
   posterdown::posterdown_betterport:
@@ -110,7 +111,26 @@ output:
 
 <style>
 #main-img-left, #main-img-center, #main-img-right {
- width: 10%;
+ width: 35%;
+}
+</style>
+
+<style>
+.main_bottom {
+ background-image: none;
+ background-color: #FFFFFF;
+}
+</style>
+
+<style>
+.section h1 {
+  font-size: 55px;
+}
+</style>
+
+<style>
+.section h2 {
+  font-size: 40px;
 }
 </style>
 
@@ -135,13 +155,25 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE,
 knitr::include_graphics("images/study_design.svg")
 ```
 
-* We developed Gaussian Graphical Models (GGMs) based on shrinkage estimates of pairwise partial correlations between EDCs and molecular features in each week
-* The obtained networks for the two visits were merged in order to identify reproducible associations
-* We corroborated the associations between EDCs and omic features with
-  * Manual literature review (PubMed)
-  * Adverse health effects associated with the EDCs (PubChem)
-  * Traits associated with the CpG sites (EWAS Atlas)
-  * Genes mapped to the CpG sites (EWAS Atlas, EWAS Catalog)
+<!-- * We developed Gaussian Graphical Models (GGMs) based on shrinkage estimates of pairwise partial correlations between EDCs and molecular features in each week -->
+<!-- * The obtained networks for the two visits were merged in order to identify reproducible associations -->
+<!-- * We corroborated the associations between EDCs and omic features with -->
+<!--   * Manual literature review (PubMed) -->
+<!--   * Adverse health effects associated with the EDCs (PubChem) -->
+<!--   * Traits associated with the CpG sites (EWAS Atlas) -->
+<!--   * Genes mapped to the CpG sites (EWAS Atlas, EWAS Catalog) -->
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
 
 # Results
 
@@ -187,10 +219,9 @@ knitr::include_graphics("images/networks_main.svg")
 
 # Conclusions
 
-* We employed an integrative method to investigate reproducible associations across time points between non-persistent EDCs and multi-omic profiles in a child cohort
-* Strengths: repeated pooled samples of urines across each week; reproducible and quantifiable measurements of the metabolome
+* We employed an integrative method to investigate reproducible associations between non-persistent EDCs and multi-omic profiles in a child cohort
+* Strengths: repeated pooled samples of urines; quantifiable measurements of the metabolome
 * Limitations: relatively small sample size; residual confounding
-* Some of these biological signatures point towards the potential biological effects of OP pesticide and phthalate metabolites on the nervous system
-* Among the most significant, we found associations between diethyl phosphate and serotonin, triclosan and serotonin, mono‑4‑methyl‑7‑hydroxyoctyl phthalate and kynurenine, triclosan and leptin
+* Some of these biological signatures point towards the potential biological effects of OP pesticides and phthalates on the nervous system
 
 # References
