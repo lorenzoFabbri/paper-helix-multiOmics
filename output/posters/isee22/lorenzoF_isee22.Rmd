@@ -5,8 +5,9 @@ main_findings: "Some of these biological signatures point towards the potential 
 main_fontfamily: "Rasa"
 main_textsize: "70px"
 main_topsize: 0.05
-main_bottomsize: 0.02
-logoright_name: "images/qr.png"
+main_bottomsize: 0.0
+logoleft_name: "images/logos_sx.svg"
+logoright_name: "images/logos_dx.svg"
 poster_height: "46.8in"
 poster_width: "33.1in"
 author:
@@ -96,6 +97,8 @@ authorextra_textsize: "22px"
 affiliation_textsize: "18px"
 column_numbers: 2
 body_textsize: "38px"
+bibliography: "bibliography.bib"
+csl: "ieee.csl"
 knit: pagedown::chrome_print
 output:
   posterdown::posterdown_betterport:
@@ -104,6 +107,12 @@ output:
     highlight: espresso
     number_sections: false
 ---
+
+<style>
+#main-img-left, #main-img-center, #main-img-right {
+ width: 10%;
+}
+</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, 
@@ -120,16 +129,10 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE,
 
 # Methods
 
-```{r, echo=FALSE}
-knitr::include_graphics("images/design.png")
-```
-
 * Data: HELIX (Human Early-Life Exposome) Child Panel Study
-* Exposures: 22 non-persistent EDCs (10 phthalate, 7 phenol, and 5 organophosphate pesticide metabolites) with repeated measures
-* Multi-omic profiles: methylome, serum and urinary metabolome, proteome
 
 ```{r, echo=FALSE}
-knitr::include_graphics("images/methods.png")
+knitr::include_graphics("images/study_design.svg")
 ```
 
 * We developed Gaussian Graphical Models (GGMs) based on shrinkage estimates of pairwise partial correlations between EDCs and molecular features in each week
@@ -142,30 +145,30 @@ knitr::include_graphics("images/methods.png")
 
 # Results
 
-## Study population
+<!-- ## Study population -->
 
-|**Characteristic**        |   **Visit A**, N = 140   |   **Visit B**, N = 143   |
-|:-------------------------|:------------------:|:------------------:|
-|__Cohort__                |                    |                    |
-|BIB                       |      27 (19%)      |      27 (19%)      |
-|EDEN                      |      23 (16%)      |      23 (16%)      |
-|KANC                      |      27 (19%)      |      26 (18%)      |
-|RHEA                      |      29 (21%)      |      29 (20%)      |
-|SAB                       |      34 (24%)      |      38 (27%)      |
-|__Sex__                   |                    |                    |
-|female                    |      60 (43%)      |      61 (43%)      |
-|male                      |      80 (57%)      |      82 (57%)      |
-|__Age__                   | 6.97 (6.44, 8.85)  | 7.55 (6.93, 9.62)  |
-|__Ethnicity__             |                    |                    |
-|Caucasian                 |     129 (92%)      |     132 (92%)      |
-|Pakistani                 |     10 (7.1%)      |     10 (7.0%)      |
-|Other                     |      1 (0.7%)      |      1 (0.7%)      |
-|__zBMI__                  | 0.28 (-0.34, 1.09) | 0.26 (-0.34, 1.09) |
-|__Season__                |                    |                    |
-|autumn                    |      35 (25%)      |      38 (27%)      |
-|spring                    |      50 (36%)      |      49 (34%)      |
-|summer                    |      20 (14%)      |      8 (5.6%)      |
-|winter                    |      35 (25%)      |      48 (34%)      |
+<!-- |**Characteristic**        |   **Visit A**, N = 140   |   **Visit B**, N = 143   | -->
+<!-- |:-------------------------|:------------------:|:------------------:| -->
+<!-- |__Cohort__                |                    |                    | -->
+<!-- |BIB                       |      27 (19%)      |      27 (19%)      | -->
+<!-- |EDEN                      |      23 (16%)      |      23 (16%)      | -->
+<!-- |KANC                      |      27 (19%)      |      26 (18%)      | -->
+<!-- |RHEA                      |      29 (21%)      |      29 (20%)      | -->
+<!-- |SAB                       |      34 (24%)      |      38 (27%)      | -->
+<!-- |__Sex__                   |                    |                    | -->
+<!-- |female                    |      60 (43%)      |      61 (43%)      | -->
+<!-- |male                      |      80 (57%)      |      82 (57%)      | -->
+<!-- |__Age__                   | 6.97 (6.44, 8.85)  | 7.55 (6.93, 9.62)  | -->
+<!-- |__Ethnicity__             |                    |                    | -->
+<!-- |Caucasian                 |     129 (92%)      |     132 (92%)      | -->
+<!-- |Pakistani                 |     10 (7.1%)      |     10 (7.0%)      | -->
+<!-- |Other                     |      1 (0.7%)      |      1 (0.7%)      | -->
+<!-- |__zBMI__                  | 0.28 (-0.34, 1.09) | 0.26 (-0.34, 1.09) | -->
+<!-- |__Season__                |                    |                    | -->
+<!-- |autumn                    |      35 (25%)      |      38 (27%)      | -->
+<!-- |spring                    |      50 (36%)      |      49 (34%)      | -->
+<!-- |summer                    |      20 (14%)      |      8 (5.6%)      | -->
+<!-- |winter                    |      35 (25%)      |      48 (34%)      | -->
 
 ## Merged network: reproducible associations across visits
 
@@ -177,10 +180,10 @@ knitr::include_graphics("images/networks_main.svg")
 
 | Chemical class | Compound | Omic layer | Omic feature | Median pcor | Biological interpretation |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| OP pesticides | DEP | Serum metabolome | Serotonin | 0.052 | Exposure to pesticides linked to changes in the serotonergic system |
-| Phenols | TRCS | Serum metabolome | Serotonin | -0.055 | Possible association between personal care product ingredients and serotonin |
-| Phthalates | oh-MiNP | Serum metabolome | Kynurenine | -0.056 | Possible mediating effect of quinolic acid  on exposure to phthalates and neurological disorders |
-| Phenols | TRCS | Proteome | Leptin | -0.066 | Effect of mixtures of phenols and parabens |
+| OP pesticides | DEP | Serum metabolome | Serotonin | 0.052 | Exposure to pesticides linked to changes in the serotonergic system [@slotkin2008developmental; @judge2016mechanism; @sarrouilhe2021exposome] |
+| Phenols | TRCS | Serum metabolome | Serotonin | -0.055 | Association between personal care product ingredients and serotonin [@houten2016changes] |
+| Phthalates | oh-MiNP | Serum metabolome | Kynurenine | -0.056 | Mediating effect of quinolic acid  on exposure to phthalates and neurological disorders [@nassan2019high] |
+| Phenols | TRCS | Proteome | Leptin | -0.066 | Effect of mixtures of phenols and parabens [@lee2022race] |
 
 # Conclusions
 
@@ -189,3 +192,5 @@ knitr::include_graphics("images/networks_main.svg")
 * Limitations: relatively small sample size; residual confounding
 * Some of these biological signatures point towards the potential biological effects of OP pesticide and phthalate metabolites on the nervous system
 * Among the most significant, we found associations between diethyl phosphate and serotonin, triclosan and serotonin, mono‑4‑methyl‑7‑hydroxyoctyl phthalate and kynurenine, triclosan and leptin
+
+# References
