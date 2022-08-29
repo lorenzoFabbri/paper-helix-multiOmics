@@ -142,18 +142,27 @@ knitr::opts_chunk$set(echo = FALSE, include = TRUE,
                       fig.align = 'center', out.width = "100%")
 ```
 
+<br>
+
 # Background & Objectives
 
 * Individuals are exposed to multiple environmental pollutants with endocrine disrupting activity (endocrine disruptors, EDCs)
-* Few studies have integrated multiple omic layers, especially in a child cohort
+* Few studies have integrated biomarkers of exposure to EDCs and multi-omics
 * We aimed to identify multi-omic signatures associated with childhood exposure to non-persistent EDCs using a network approach
+
+<br>
 
 # Methods
 
-* Data: HELIX (Human Early-Life Exposome) Child Panel Study
+* Data: HELIX (Human Early-Life Exposome) Child Panel Study ($N_A = 140$, $N_B = 143$)
+
+<br>
+
+<img src="images/study_design.svg" 
+  style="height: 2000px; width:1500px;"/>
 
 ```{r, echo=FALSE}
-knitr::include_graphics("images/study_design.svg")
+#knitr::include_graphics(paste0(getwd(), "/images/study_design.svg"))
 ```
 
 <!-- * We developed Gaussian Graphical Models (GGMs) based on shrinkage estimates of pairwise partial correlations between EDCs and molecular features in each week -->
@@ -163,12 +172,6 @@ knitr::include_graphics("images/study_design.svg")
 <!--   * Adverse health effects associated with the EDCs (PubChem) -->
 <!--   * Traits associated with the CpG sites (EWAS Atlas) -->
 <!--   * Genes mapped to the CpG sites (EWAS Atlas, EWAS Catalog) -->
-
-<br>
-
-<br>
-
-<br>
 
 <br>
 
@@ -205,16 +208,19 @@ knitr::include_graphics("images/study_design.svg")
 
 ## Merged network: reproducible associations across visits
 
+<img src="images/networks_main.svg" 
+  style="height: 2000px; width:1500px;"/>
+
 ```{r, echo=FALSE}
-knitr::include_graphics("images/networks_main.svg")
+#knitr::include_graphics(paste0(getwd(), "/images/networks_main.svg"))
 ```
 
 * The process of network merging led to the exclusion of a significant number of edges, maintaining 950 edges compared to 4,083 and 4,908 in networks A and B, respectively
 
-| Chemical class | Compound | Omic layer | Omic feature | Median pcor | Biological interpretation |
+| Chemical class | Compound | Omic layer | Omic feature | Median pcor | Literature review |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| OP pesticides | DEP | Serum metabolome | Serotonin | 0.052 | Exposure to pesticides linked to changes in the serotonergic system [@slotkin2008developmental; @judge2016mechanism; @sarrouilhe2021exposome] |
-| Phenols | TRCS | Serum metabolome | Serotonin | -0.055 | Association between personal care product ingredients and serotonin [@houten2016changes] |
+| OP pesticides | DEP | Serum metabolome | Serotonin | 0.052 | Exposure to pesticides and changes in the serotonergic system [@slotkin2008developmental; @judge2016mechanism; @sarrouilhe2021exposome] |
+| Phenols | TRCS | Serum metabolome | Serotonin | -0.055 | Association between personal care products and serotonin [@houten2016changes] |
 | Phthalates | oh-MiNP | Serum metabolome | Kynurenine | -0.056 | Mediating effect of quinolic acid  on exposure to phthalates and neurological disorders [@nassan2019high] |
 | Phenols | TRCS | Proteome | Leptin | -0.066 | Effect of mixtures of phenols and parabens [@lee2022race] |
 

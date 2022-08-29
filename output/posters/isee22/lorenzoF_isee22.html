@@ -437,20 +437,24 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
   font-size: 40px;
 }
 </style>
+<p><br></p>
 <div id="background-objectives" class="section level1">
 <h1>Background &amp; Objectives</h1>
 <ul>
 <li>Individuals are exposed to multiple environmental pollutants with endocrine disrupting activity (endocrine disruptors, EDCs)</li>
-<li>Few studies have integrated multiple omic layers, especially in a child cohort</li>
+<li>Few studies have integrated biomarkers of exposure to EDCs and multi-omics</li>
 <li>We aimed to identify multi-omic signatures associated with childhood exposure to non-persistent EDCs using a network approach</li>
 </ul>
+<p><br></p>
 </div>
 <div id="methods" class="section level1">
 <h1>Methods</h1>
 <ul>
-<li>Data: HELIX (Human Early-Life Exposome) Child Panel Study</li>
+<li>Data: HELIX (Human Early-Life Exposome) Child Panel Study (<span class="math inline">\(N_A = 140\)</span>, <span class="math inline">\(N_B = 143\)</span>)</li>
 </ul>
-<p><img src="images/study_design.svg" width="100%" style="display: block; margin: auto;" /></p>
+<p><br></p>
+<p><img src="images/study_design.svg" 
+  style="height: 2000px; width:1500px;"/></p>
 <!-- * We developed Gaussian Graphical Models (GGMs) based on shrinkage estimates of pairwise partial correlations between EDCs and molecular features in each week -->
 <!-- * The obtained networks for the two visits were merged in order to identify reproducible associations -->
 <!-- * We corroborated the associations between EDCs and omic features with -->
@@ -458,9 +462,6 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <!--   * Adverse health effects associated with the EDCs (PubChem) -->
 <!--   * Traits associated with the CpG sites (EWAS Atlas) -->
 <!--   * Genes mapped to the CpG sites (EWAS Atlas, EWAS Catalog) -->
-<p><br></p>
-<p><br></p>
-<p><br></p>
 <p><br></p>
 <p><br></p>
 <p><br></p>
@@ -492,7 +493,8 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <!-- |winter                    |      35 (25%)      |      48 (34%)      | -->
 <div id="merged-network-reproducible-associations-across-visits" class="section level2">
 <h2>Merged network: reproducible associations across visits</h2>
-<p><img src="images/networks_main.svg" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="images/networks_main.svg" 
+  style="height: 2000px; width:1500px;"/></p>
 <ul>
 <li>The process of network merging led to the exclusion of a significant number of edges, maintaining 950 edges compared to 4,083 and 4,908 in networks A and B, respectively</li>
 </ul>
@@ -512,7 +514,7 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <th align="center">Omic layer</th>
 <th align="center">Omic feature</th>
 <th align="center">Median pcor</th>
-<th align="center">Biological interpretation</th>
+<th align="center">Literature review</th>
 </tr>
 </thead>
 <tbody>
@@ -522,7 +524,7 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <td align="center">Serum metabolome</td>
 <td align="center">Serotonin</td>
 <td align="center">0.052</td>
-<td align="center">Exposure to pesticides linked to changes in the serotonergic system<span class="citation"><sup>[<a href="#ref-slotkin2008developmental" role="doc-biblioref">1</a>–<a href="#ref-sarrouilhe2021exposome" role="doc-biblioref">3</a>]</sup></span></td>
+<td align="center">Exposure to pesticides and changes in the serotonergic system<span class="citation"><sup>[<a href="#ref-slotkin2008developmental" role="doc-biblioref">1</a>–<a href="#ref-sarrouilhe2021exposome" role="doc-biblioref">3</a>]</sup></span></td>
 </tr>
 <tr class="even">
 <td align="center">Phenols</td>
@@ -530,7 +532,7 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 <td align="center">Serum metabolome</td>
 <td align="center">Serotonin</td>
 <td align="center">-0.055</td>
-<td align="center">Association between personal care product ingredients and serotonin<span class="citation"><sup>[<a href="#ref-houten2016changes" role="doc-biblioref">4</a>]</sup></span></td>
+<td align="center">Association between personal care products and serotonin<span class="citation"><sup>[<a href="#ref-houten2016changes" role="doc-biblioref">4</a>]</sup></span></td>
 </tr>
 <tr class="odd">
 <td align="center">Phthalates</td>
@@ -596,6 +598,19 @@ Lorenzo Fabbri<sup> a, b, <a class="orcid" href="https://orcid.org/0000-0003-303
 </div>
 </div>
 
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+var script = document.createElement("script");
+script.type = "text/javascript";
+var src = "true";
+if (src === "" || src === "true") src = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML";
+if (location.protocol !== "file:" && /^https?:/.test(src))
+src = src.replace(/^https?:/, '');
+script.src = src;
+document.getElementsByTagName("head")[0].appendChild(script);
+})();
+</script>
 
 
 </body>
