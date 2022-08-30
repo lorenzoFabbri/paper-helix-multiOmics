@@ -327,7 +327,7 @@ plot.bootstrapping.nets <- function(path, path.save) {
                   y = "log_10(number of reproducible edges)") +
     ggplot2::scale_y_log10()
   ggplot2::ggsave(filename = paste0(path.save, "repEdges_byIter.jpg"), 
-                  plot = plt, 
+                  plot = plt, bg = "white", 
                   dpi = 320, 
                   width = 7, height = 5)
   ##############################################################################

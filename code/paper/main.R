@@ -20,7 +20,7 @@ panel.boot <- ggpubr::ggarrange(ret[[1]], ret[[2]],
                                 labels = c("a", "b"))
 ggplot2::ggsave(filename = paste0("results/final_material_paper_v2/SI/", 
                                   "pcor_boot_panel.jpg"), 
-                plot = panel.boot, 
+                plot = panel.boot, bg = "white", 
                 dpi = 320, 
                 width = 7, height = 15)
 
@@ -79,12 +79,12 @@ unproc.net1 <- readRDS("../data/correlations/network_raw_mod_2.2.1.5.5")
 unproc.net2 <- readRDS("../data/correlations/network_raw_mod_2.2.2.5.5")
 unproc.nets <- list(unproc.net1, unproc.net2) %>%
   dplyr::bind_rows(.id = "visit") %>%
-  dplyr::mutate(visit = ifelse(visit == 1, "A", "B"))
+  dplyr::mutate(visit = ifelse(visit == 1, "visit A", "visit B"))
 
 tmp <- unproc.nets %>%
   ggplot2::ggplot(mapping = aes(x = pcor, 
                                 fill = visit)) +
-  ggplot2::geom_histogram(alpha = 0.4, position = "identity", 
+  ggplot2::geom_histogram(position = "identity", 
                           show.legend = TRUE) +
   ggplot2::facet_wrap(~ visit) +
   ggplot2::theme_light() +
@@ -94,12 +94,12 @@ tmp <- unproc.nets %>%
                  axis.line = element_line(), 
                  text = ggplot2::element_text(size = 20)) +
   ggplot2::scale_y_continuous(expand = c(0, 0)) +
-  ggplot2::labs(x = "partial correlations") +
-  ggplot2::scale_fill_brewer(palette = "Accent")
+  ggplot2::labs(x = "partial correlations", fill = "network") +
+  ggplot2::scale_fill_manual(values = c("#11698E", "#0F3057"))
 tmp.pvals <- unproc.nets %>%
   ggplot2::ggplot(mapping = aes(x = pval, 
                                 fill = visit)) +
-  ggplot2::geom_histogram(alpha = 0.4, position = "identity", 
+  ggplot2::geom_histogram(position = "identity", 
                           show.legend = FALSE) +
   ggplot2::facet_wrap(~ visit) +
   ggplot2::theme_light() +
@@ -108,8 +108,8 @@ tmp.pvals <- unproc.nets %>%
                  panel.grid = element_blank(), 
                  axis.line = element_line(), 
                  text = ggplot2::element_text(size = 20)) +
-  ggplot2::labs(x = "p-values") +
-  ggplot2::scale_fill_brewer(palette = "Accent")
+  ggplot2::labs(x = "p-values", fill = "network") +
+  ggplot2::scale_fill_manual(values = c("#11698E", "#0F3057"))
 plt <- egg::ggarrange(tmp.pvals, tmp, ncol = 1, heights = c(0.3, 1.2))
 ggplot2::ggsave(filename = "results/final_material_paper_v2/pcorsPvals.jpg", 
                 height = 10, width = 15, dpi = 320, plot = plt)
@@ -197,7 +197,7 @@ plt <- ggplot2::ggplot(data = counts, mapping = aes(x = edge_type,
   ggplot2::geom_text(aes(label = ifelse(n == "merged", avg.pc, "")), 
                      position = ggplot2::position_dodge(width = 0.9), 
                      color = "black", vjust = -0.3) +
-  ggplot2::scale_fill_brewer(palette = "Accent")
+  ggplot2::scale_fill_manual(values = c("#16C79A", "#11698E", "#0F3057"))
 ggplot2::ggsave(filename = "results/final_material_paper_v2/barplots_countsEdges.jpg", 
                 height = 10, width = 15, dpi = 320, plot = plt)
 
