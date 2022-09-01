@@ -47,44 +47,46 @@ plot.net.as.heatmap <- function(net) {
   if (!identical(selected.nodes$name, mapping.to.class$name)) { stop(call. = TRUE) }
   
   # Plot heatmap
-  to.plot <- ggdendroplot::hmReady(df = as.data.frame(as.matrix(S)), 
-                                   rowclus = my.dend, colclus = my.dend) %>%
-    tibble::as_tibble() %>%
-    dplyr::inner_join(mapping.to.class, by = c("rowid" = "name"))
-  to.plot$value <- as.integer(to.plot$value)
-  calcs <- ggdendroplot:::.plotcalculation(clust = my.dend, 
-                                           xlim = NULL, ylim = NULL, 
-                                           pointing = "updown")
-  calcs.y <- ggdendroplot:::.plotcalculation(clust = my.dend, 
-                                             xlim = NULL, ylim = NULL, 
-                                             pointing = "side")
-  col.nodes <- to.plot[match(calcs$plotlabels$label, 
-                             to.plot$rowid), ]$color
-  plt <- ggplot2::ggplot(data = to.plot) +
-    ggplot2::geom_tile(aes(x = x, y = y, fill = factor(value))) +
-    ggplot2::scale_fill_manual(values = c("lightgrey", "red"), 
-                               name = "adjacency") +
-    ggplot2::scale_x_continuous(breaks = calcs$plotlabels$x, 
-                                labels = calcs$plotlabels$label, 
-                                expand = c(0, 0)) +
-    ggplot2::scale_y_continuous(breaks = calcs.y$plotlabels$y, 
-                                labels = calcs.y$plotlabels$label, 
-                                expand = c(0, 0)) +
-    ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, 
-                                              size = 2, 
-                                              colour = col.nodes), 
-                   axis.text.y = element_text(size = 2, 
-                                              colour = col.nodes), 
-                   axis.title.x = element_blank(), 
-                   axis.title.y = element_blank(), 
-                   strip.text.x = ggplot2::element_text(size = 11), 
-                   strip.text.y = ggplot2::element_text(size = 7), 
-                   axis.ticks = element_blank(), 
-                   panel.background = element_blank())
-  ggplot2::ggsave(filename = "results/final_material_paper_v2/heatmap_adj_mergedNet.jpg", 
-                  height = 15, width = 15, 
-                  dpi = 720, 
-                  plot = plt)
+  labels <- rownames(S) %>% tibble::as_tibble()
+  colnames(labels) <- "name"
+  labels <- labels %>%
+    dplyr::inner_join(mapping.to.class, by = c("name" = "name"))
+  annot <- ComplexHeatmap::HeatmapAnnotation(layer = labels$label, 
+                                             col = list(
+                                               layer = c("exposure" = "#CCCCCC", 
+                                                         "methylome" = "#66CCFF", 
+                                                         "proteome" = "#FFCCCC", 
+                                                         "serum metabolome" = "#FF3333", 
+                                                         "urinary metabolome" = "#FFCC00")
+                                             ), show_legend = FALSE, 
+                                             show_annotation_name = FALSE)
+  row.annot <- ComplexHeatmap::rowAnnotation(layer = labels$label, 
+                                             col = list(
+                                               layer = c("exposure" = "#CCCCCC", 
+                                                         "methylome" = "#66CCFF", 
+                                                         "proteome" = "#FFCCCC", 
+                                                         "serum metabolome" = "#FF3333", 
+                                                         "urinary metabolome" = "#FFCC00")
+                                               ), 
+                                             show_annotation_name = FALSE)
+  hm <- ComplexHeatmap::Heatmap(S, 
+                                show_row_dend = TRUE, show_column_dend = FALSE, 
+                                cluster_rows = my.dend, cluster_columns = my.dend, 
+                                col = ComplexHeatmap::ColorMapping(
+                                  colors = c("0" = "lightgrey", 
+                                             "1" = "red")
+                                ), heatmap_legend_param = list(
+                                  title = "adjacency"
+                                ), 
+                                bottom_annotation = annot, 
+                                right_annotation = row.annot, 
+                                show_row_names = FALSE, show_column_names = FALSE, 
+                                width = 12, height = 12)
+  
+  svg(filename = "results/final_material_paper_v2/SI/heatmap_adj_mergedNet.svg", 
+      height = 12, width = 12)
+  ComplexHeatmap::draw(hm)
+  dev.off()
 }
 
 ##### Function to plot Venn diagrams from table of direct edges of merged network
