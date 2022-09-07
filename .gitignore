@@ -26,6 +26,7 @@ results/focus_merged_ccs/
 results/ggm/
 results/images/
 results/pathways/
+*_LM*
 
 # History files
 .Rhistory
