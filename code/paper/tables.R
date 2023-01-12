@@ -8,7 +8,26 @@ source("code/multivariate_analysis/dictionaries.R")
 load.metadata <- function(time.point) {
   path.meta <- "data/"
   
-  season <- readr::read_csv(paste0(path.meta, "metadata_old.csv"), col_names = TRUE) %>%
+  # For the first review of Env Int, I was asked to add info
+  # on smoking and maternal education. I found these variables
+  # in a dataset from another project in the HPC cluster
+  .file.name <- "HELIX_subcohort_raw.csv"
+  extra.covars <- readr::read_csv(paste0("../../../analyses/GE_BMI_IF/db/", 
+                                  .file.name), 
+                                  col_names = TRUE, 
+                                  col_types = readr::cols()) %>%
+    tibble::as_tibble() %>%
+    dplyr::mutate(SampleID = gsub("EDP", "EDE", SampleID)) %>%
+    dplyr::select(-tidyselect::contains("HelixID")) %>%
+    dplyr::mutate(HelixID = from.sample.to.helix(SampleID)) %>%
+    dplyr::select(c(HelixID, 
+                    hs_globalexp_None, hs_globalexp2_None, 
+                    hs_smk_parents_None, hs_globalsmok_m_None, 
+                    h_edumc_None))
+  
+  season <- readr::read_csv(paste0(path.meta, "metadata_old.csv"), 
+                            col_names = TRUE, 
+                            col_types = readr::cols()) %>%
     dplyr::select(c(SampleID, season, period)) %>%
     dplyr::filter(period == ifelse(time.point == 1, "A", "B")) %>%
     dplyr::mutate(SampleID = gsub("EDP", "EDE", SampleID)) %>%
@@ -19,14 +38,21 @@ load.metadata <- function(time.point) {
   
   metadata <- readr::read_csv(file = paste0(path.meta, "meta", 
                                             time.point, ".csv"), 
-                              col_names = TRUE) %>%
+                              col_names = TRUE, 
+                              col_types = readr::cols()) %>%
     dplyr::select(-tidyselect::contains("HelixID")) %>%
     dplyr::mutate(HelixID = from.sample.to.helix(SampleID)) %>%
     dplyr::inner_join(season)
+  old.nrows <- nrow(metadata)
+  metadata <- metadata %>%
+    dplyr::inner_join(extra.covars, by = "HelixID")
+  if (old.nrows != nrow(metadata)) { stop("Number of rows is different.", 
+                                          call. = TRUE) }
   
   common.subjects <- readr::read_csv(paste0(path.meta, 
                                             paste0("common_samples_t", 
-                                                   time.point, ".csv"))) %>%
+                                                   time.point, ".csv")), 
+                                     col_types = readr::cols()) %>%
     `colnames<-`(c("HelixID"))
   
   # Final dataset
@@ -39,42 +65,89 @@ load.metadata <- function(time.point) {
 }
 
 ##### Function to create table with population description
-tables.population.desc <- function(to.save) {
+tables.population.desc <- function(to.save, tbl.by = "Period") {
   meta.1 <- load.metadata(time.point = 1)
   meta.2 <- load.metadata(time.point = 2)
   metadata <- dplyr::bind_rows(meta.1, meta.2)
   
-  # Table
-  info <- gtsummary::tbl_summary(metadata %>%
-                                   dplyr::select(-c(cohort)) %>%
-                                   dplyr::rename(., Cohort = cohort.x) %>%
-                                   dplyr::rename(., Sex = e3_sex.x) %>%
-                                   dplyr::rename(., Age = age_sample_years.x) %>%
-                                   dplyr::rename(., Season = season) %>%
-                                   dplyr::rename(., Ethnicity = h_ethnicity_c.x) %>%
-                                   dplyr::mutate(., Period = replace(
-                                     Period, Period == "1A", "A"
-                                   )) %>%
-                                   dplyr::mutate(., Period = replace(
-                                     Period, Period == "1B", "B"
-                                   )), 
-                                 include = c("Cohort", 
-                                             "Sex", 
-                                             "Age", 
-                                             "Ethnicity", 
-                                             "zBMI", 
-                                             "hs_dift_mealblood_imp", 
-                                             "Season"
-                                 ), 
-                                 by = "Period") %>%
-    #gtsummary::add_overall() %>%
-    gtsummary::bold_labels()
+  # Add information regarding difference in months between visits
+  merged <- dplyr::inner_join(meta.1, meta.2, by = "HelixID")
+  merged <- merged %>%
+    dplyr::mutate(diff.visits = age_sample_months.x.y - age_sample_months.x.x)
+  metadata <- dplyr::full_join(metadata, 
+                               merged %>%
+                                 dplyr::select(HelixID, diff.visits), 
+                               by = "HelixID")
+  metadata <- metadata %>%
+    dplyr::mutate(season = factor(season) %>% forcats::fct_explicit_na(), 
+                  h_edumc_None = factor(h_edumc_None) %>%
+                    forcats::fct_explicit_na(), 
+                  hs_globalsmok_m_None = factor(hs_globalsmok_m_None) %>%
+                    forcats::fct_explicit_na()) %>%
+    dplyr::mutate(h_edumc_None = forcats::fct_recode(
+      h_edumc_None, 
+      "Low" = "1", "Middle" = "2", "High" = "3"
+    ))
   
-  if (to.save == TRUE) {
-    gt::gtsave(info %>% gtsummary::as_gt(), 
-               filename = "results/images/pop_desc.rtf", 
-               zoom = 4, expand = 7)
-  } else { return(info) }
+  # Table
+  hs_mealblood <- "Time to last meal (hours)"
+  diff.visits <- "Difference between visits (months)"
+  h_edumc_None <- "Maternal education"
+  hs_globalsmok_m_None <- "Tobacco exposure"
+  # Helper function to generate summary table
+  .summary <- function(metadata) {
+    gtsummary::tbl_summary(metadata %>%
+                             dplyr::select(-c(cohort)) %>%
+                             dplyr::rename(., Cohort = cohort.x) %>%
+                             dplyr::rename(., Sex = e3_sex.x) %>%
+                             dplyr::rename(., Age = age_sample_years.x) %>%
+                             dplyr::rename(., Season = season) %>%
+                             dplyr::rename(., Ethnicity = h_ethnicity_c.x) %>%
+                             dplyr::mutate(., Period = replace(
+                               Period, Period == "1A", "A"
+                             )) %>%
+                             dplyr::mutate(., Period = replace(
+                               Period, Period == "1B", "B"
+                             )) %>%
+                             dplyr::mutate(Ethnicity = factor(
+                               Ethnicity, 
+                               levels = c("Caucasian", "Pakistani", "Other")
+                             ), 
+                             Period = as.factor(Period)), 
+                           include = c("Cohort", "Sex", "Age", "diff.visits", 
+                                       "Ethnicity", "zBMI", 
+                                       "hs_dift_mealblood_imp", "Season", 
+                                       "h_edumc_None", "hs_globalsmok_m_None"
+                           ), 
+                           label = list(
+                             hs_dift_mealblood_imp ~ hs_mealblood, 
+                             diff.visits ~ diff.visits, 
+                             h_edumc_None ~ h_edumc_None, 
+                             hs_globalsmok_m_None ~ hs_globalsmok_m_None
+                           ), missing = "ifany", 
+                           by = tbl.by) %>%
+      gtsummary::bold_labels()
+  }
+  if (tbl.by == "Cohort") {
+    .path <- "../../lorenzoF_phd/PhD/papers/paper1_helix_multiOmics/EnvInt_Sep2022/review1/dat/"
+    infos <- lapply(metadata %>% dplyr::group_split(Period), 
+                    FUN = .summary)
+    if (to.save == TRUE) {
+      gt::gtsave(infos[[1]] %>% gtsummary::as_gt(), 
+                 filename = paste0(.path, "pop_desc_a.rtf"), 
+                 zoom = 4, expand = 7)
+      gt::gtsave(infos[[2]] %>% gtsummary::as_gt(), 
+                 filename = paste0(.path, "pop_desc_b.rtf"), 
+                 zoom = 4, expand = 7)
+    } else { return(infos) }
+  } else {
+    info <- .summary(metadata = metadata)
+    if (to.save == TRUE) {
+      gt::gtsave(info %>% gtsummary::as_gt(), 
+                 filename = paste0(.path, "pop_desc.rtf"), 
+                 zoom = 4, expand = 7)
+    } else { return(info) }
+  }
 }
 
 ##### Helper function for `tables.networks` to process networks

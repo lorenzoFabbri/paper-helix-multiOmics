@@ -651,7 +651,7 @@ plot.heatmaps <- function(time.point) {
 
 ##### Function to load and filter fitted networks
 clean.net <- function(path.corr, type.net, center.node = NULL, 
-                      key.save = "") {
+                      key.save = "", ret.net = FALSE) {
   path.save <- "results/images/"
   is.directed <- FALSE
   
@@ -792,6 +792,8 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
     tidygraph::mutate(col = as.factor(net.correct.labs$code.col)) %>%
     tidygraph::mutate(shap = as.factor(net.correct.labs$code.shape))
   
+  if (ret.net) { return(net) }
+  
   gg <- ggraph::ggraph(net, 
                        layout = "fr") +
     ggraph::geom_node_point(mapping = aes(shape = label,  
@@ -836,9 +838,9 @@ clean.net <- function(path.corr, type.net, center.node = NULL,
       ggplot2::theme(legend.position = "none")
   }
   
-  ggplot2::ggsave(paste0(path.save, type.net, "_", key.save, ".png"), 
-                  dpi = 720/2, 
-                  width = 20, height = 12)
+  # ggplot2::ggsave(paste0(path.save, type.net, "_", key.save, ".png"), 
+  #                 dpi = 720/2, 
+  #                 width = 20, height = 12)
 }
 
 ##### Function to compute network properties

@@ -213,8 +213,6 @@ tables.population.desc()
 ## Summary statistics of exposures for the 2 visits
 params <- list()
 path.data <- "../data/"
-scale.new <- list(perform = TRUE, group = "none", 
-                  method = "autoscale")
 ret.exp <- list()
 for (time.point in 1:2) {
   params$time.point <- time.point
@@ -223,15 +221,12 @@ for (time.point in 1:2) {
                                            "A", "B"))) %>%
     .$data %>% tibble::as_tibble() %>%
     dplyr::mutate(HelixID = from.sample.to.helix(SampleID)) %>%
-    dplyr::select(-c(SampleID))
-  exposome <- scale.by.group(data = exposome, group = scale.new$group, 
-                             start = 1, end = 3, method = scale.new$method)
-  exposome <- exposome %>%
-    dplyr::ungroup() %>%
-    dplyr::select(-c(HelixID, group))
+    dplyr::select(-c(SampleID, HelixID))
   colnames(exposome) <- colnames(exposome) %>%
     stringr::str_replace_all(., "log.", "") %>%
     stringr::str_replace_all(., "_e", "")
+  
+  exposome <- 2 ^ exposome
   
   summ <- exposome %>%
     gtsummary::tbl_summary(

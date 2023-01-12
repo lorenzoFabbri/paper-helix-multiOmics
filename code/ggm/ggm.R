@@ -132,7 +132,7 @@ perform.analysis <- function(params, save.data) {
   if (params$is.hpc == TRUE) {
     ## We are using data from the new HPC cluster
     
-    # Filtered CG sites
+    # Filtered CpG sites
     filtered.cgs <- readr::read_csv("data/cpgs_ewaffSVA_common.csv", 
                                     col_names = TRUE, 
                                     col_types = cols()) %>%
