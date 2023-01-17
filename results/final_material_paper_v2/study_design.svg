@@ -6,7 +6,7 @@
    inkscape:export-xdpi="720"
    inkscape:export-filename="study_design.png"
    sodipodi:docname="study_design.svg"
-   inkscape:version="1.2 (1:1.2.1+202207142221+cd75a1ee6d)"
+   inkscape:version="1.2.2 (1:1.2.2+202212051552+b0a8486541)"
    id="svg5"
    version="1.1"
    viewBox="0 0 210 297"
@@ -29,7 +29,7 @@
      showgrid="false"
      inkscape:zoom="2.0916889"
      inkscape:cx="401.58936"
-     inkscape:cy="945.40828"
+     inkscape:cy="869.87123"
      inkscape:window-width="1846"
      inkscape:window-height="1016"
      inkscape:window-x="0"
@@ -3555,7 +3555,10 @@
          y="255.10188" /></text>
     <g
        id="g2752"
-       transform="translate(-0.71538986,4.2170039)">
+       transform="translate(-0.71538986,4.2170039)"
+       inkscape:export-filename="../../../../../../../../../../../Downloads/tmp/g2752.png"
+       inkscape:export-xdpi="720"
+       inkscape:export-ydpi="720">
       <text
          xml:space="preserve"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0px;stroke-width:0.264583"
@@ -3608,30 +3611,34 @@
       </g>
       <text
          xml:space="preserve"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.94419px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;letter-spacing:0px;text-anchor:start;stroke-width:0.369767"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.82222px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;letter-spacing:0px;text-anchor:start;stroke-width:0.369767"
          x="15.760468"
-         y="241.5435"
+         y="240.19589"
          id="text169953-6"><tspan
            sodipodi:role="line"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.95816px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;text-anchor:start;stroke-width:0.369767"
+           id="tspan897"
            x="15.760468"
-           y="241.5435"
-           id="tspan108714-4">- Manual literature review (PubMed, CTD)</tspan><tspan
+           y="240.19589">- Manual literature review (PubMed, CTD)</tspan><tspan
            sodipodi:role="line"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.95816px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;text-anchor:start;stroke-width:0.369767"
+           id="tspan899"
            x="15.760468"
-           y="246.47374"
-           id="tspan14287">- EDC-related adverse health effects (PubChem)</tspan><tspan
+           y="243.72366">- EDC-associated disorders and diseases (PubChem)</tspan><tspan
            sodipodi:role="line"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.95816px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;text-anchor:start;stroke-width:0.369767"
+           id="tspan901"
            x="15.760468"
-           y="251.40398"
-           id="tspan14942">- Traits associated with CpGs (EWAS Atlas)</tspan><tspan
+           y="247.25145">- Genes mapped to the CpGs (EWAS Atlas, </tspan><tspan
            sodipodi:role="line"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.95816px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;text-anchor:start;stroke-width:0.369767"
+           id="tspan903"
            x="15.760468"
-           y="256.33423"
-           id="tspan1525">- Genes mapped to the CpGs (EWAS Atlas, EWAS Catalog)</tspan></text>
+           y="250.77922">  EWAS Catalog)</tspan><tspan
+           sodipodi:role="line"
+           id="tspan905"
+           x="15.760468"
+           y="254.30699">- Omic-associated traits (EWAS Atlas, </tspan><tspan
+           sodipodi:role="line"
+           id="tspan907"
+           x="15.760468"
+           y="257.83478">  HMDB, Human Protein Atlas)</tspan></text>
     </g>
   </g>
 </svg>
