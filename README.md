@@ -2,16 +2,20 @@
 
 Repository containing the code to reproduce the results of the first paper of my PhD.
 
-DOI: **TODO**.
+DOI: [https://doi.org/10.1016/j.envint.2023.107856](https://doi.org/10.1016/j.envint.2023.107856).
 
 ## Abstract
-**Background**: Individuals are exposed to environmental pollutants with endocrine disrupting activity (endocrine disruptors, EDCs) and the early stages of life are particularly susceptible to these exposures. Previous studies have focused on identifying molecular signatures associated with EDCs, but few have integrated multiple omic layers. We aimed to identify multi-omic signatures associated with childhood exposure to non-persistent EDCs.
+### Background
+Individuals are exposed to environmental pollutants with endocrine disrupting activity (endocrine disruptors, EDCs) and the early stages of life are particularly susceptible to these exposures. Previous studies have focused on identifying molecular signatures associated with EDCs, but none have used repeated sampling strategy and integrated multiple omics. We aimed to identify multi-omic signatures associated with childhood exposure to non-persistent EDCs.
 
-**Methods**: We used data from the HELIX (Human Early-Life Exposome) Child Panel Study, which included 156 children aged 6 to 11. Children were followed twice for one week, 6 months apart. Twenty-two non-persistent EDCs (10 phthalate, 7 phenol, and 5 organophosphate pesticide metabolites) were measured in two weekly pools of 15 urine samples each. Multi-omic profiles (methylome, serum and urinary metabolome, proteome) were measured in blood and in a pool of two urine samples. We developed visit-specific Gaussian Graphical Models based on partial correlations between EDCs and omic features. The visit-specific networks were then merged to identify reproducible associations. Independent biological evidence was systematically sought to confirm some of these associations.
+### Methods
+We used data from the HELIX Child Panel Study, which included 156 children aged 6 to 11. Children were followed for one week, in two time periods. Twenty-two non-persistent EDCs (10 phthalate, 7 phenol, and 5 organophosphate pesticide metabolites) were measured in two weekly pools of 15 urine samples each. Multi-omic profiles (methylome, serum and urinary metabolome, proteome) were measured in blood and in a pool urine samples. We developed visit-specific Gaussian Graphical Models based on pairwise partial correlations. The visit-specific networks were then merged to identify reproducible associations. Independent biological evidence was systematically sought to confirm some of these associations and assess their potential health implications.
 
-**Results**: The visit-specific networks included 4,083 and 4,908 edges of comparable strength. Associations between EDCs and either proteins or urinary metabolites showed the highest reproducibility scores. Previous literature provide support for the involvement of some of our results in relation to neurological outcomes (DEP - serotonin, triclosan - serotonin, oh-MiNP - kynurenine), and insulin resistance (triclosan - leptin). Many of the EDCs we identified as associated with omic markers, to our knowledge, have not been studied in relation to health outcomes in the setting of childhood exposure.
+### Results
+950 reproducible associations were found among which 23 were direct associations between EDCs and omics. For 9 of them, we were able to find corroborating evidence from previous literature: DEP - serotonin, OXBE - cg27466129, OXBE - dimethylamine, triclosan - leptin, triclosan - serotonin, MBzP - Neu5AC, MEHP - cg20080548, oh-MiNP - kynurenine, oxo-MiNP - 5-oxoproline. We used these associations to explore possible mechanisms between EDCs and health outcomes, and found links to health outcomes for 3 analytes: serotonin and kynurenine in relation to neuro-behavioural development, and leptin in relation to obesity and insulin resistance.
 
-**Conclusions**: This multi-omic network analysis at two repeated time points identified several biologically relevant molecular signatures related to non-persistent EDC exposure in childhood, suggesting pathways related to neurological and metabolic outcomes.
+### Conclusions
+This multi-omics network analysis at two time points identified biologically relevant molecular signatures related to non-persistent EDC exposure in childhood, suggesting pathways related to neurological and metabolic outcomes.
 
 ## Structure of the repository
 * `code/`
